@@ -74,7 +74,7 @@ export default function Home() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-red-500">
+          <p className="text-sm font-bold text-red-500">
             Test credentials: Admin / admin
           </p>
         </div>
