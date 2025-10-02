@@ -127,7 +127,7 @@ export default function FormLingkunganPage() {
 
             {/* Availability */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">
+              <label className="block text-sm font-large font-bold text-gray-700 mb-4">
                 Availability
               </label>
 
@@ -136,7 +136,7 @@ export default function FormLingkunganPage() {
                   <p className="font-medium text-gray-700 mb-2">
                     Gereja St. Yakbus: Sabtu
                   </p>
-                  <label className="flex items-center">
+                  <label className="flex items-center text-black">
                     <input
                       type="checkbox"
                       name="sabtu1700"
@@ -153,7 +153,7 @@ export default function FormLingkunganPage() {
                     Gereja St. Yakbus: Minggu
                   </p>
                   <div className="space-y-2">
-                    <label className="flex items-center">
+                    <label className="flex items-center text-black">
                       <input
                         type="checkbox"
                         name="minggu0800"
@@ -163,7 +163,7 @@ export default function FormLingkunganPage() {
                       />
                       08.00
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-black">
                       <input
                         type="checkbox"
                         name="minggu1100"
@@ -173,7 +173,7 @@ export default function FormLingkunganPage() {
                       />
                       11.00
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-black">
                       <input
                         type="checkbox"
                         name="minggu1700"
@@ -191,7 +191,7 @@ export default function FormLingkunganPage() {
                     Pegangsaan 2: Minggu
                   </p>
                   <div className="space-y-2">
-                    <label className="flex items-center">
+                    <label className="flex items-center text-black">
                       <input
                         type="checkbox"
                         name="minggu0730"
@@ -201,7 +201,7 @@ export default function FormLingkunganPage() {
                       />
                       07.30
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center text-black">
                       <input
                         type="checkbox"
                         name="minggu1030"
