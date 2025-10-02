@@ -45,26 +45,50 @@ export default function FormLingkunganPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Add your form submission logic here
-    alert("Lingkungan berhasil ditambahkan!");
 
-    // Reset form
-    setFormData({
-      namaLingkungan: "",
-      namaKetua: "",
-      jumlahTatib: "0",
-      availability: {
-        sabtu1700: false,
-        minggu0800: false,
-        minggu1100: false,
-        minggu1700: false,
-        minggu0730: false,
-        minggu1030: false,
-      },
-    });
+    try {
+      // Prepare data for submission
+      const submissionData = {
+        namaLingkungan: formData.namaLingkungan,
+        namaKetua: formData.namaKetua,
+        jumlahTatib: parseInt(formData.jumlahTatib),
+        availability: formData.availability,
+      };
+
+      const response = await fetch("/api/lingkungan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (response.ok) {
+        alert("Lingkungan berhasil ditambahkan!");
+
+        // Reset form
+        setFormData({
+          namaLingkungan: "",
+          namaKetua: "",
+          jumlahTatib: "0",
+          availability: {
+            sabtu1700: false,
+            minggu0800: false,
+            minggu1100: false,
+            minggu1700: false,
+            minggu0730: false,
+            minggu1030: false,
+          },
+        });
+      } else {
+        alert("Gagal menambahkan lingkungan. Silakan coba lagi.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
+    }
   };
 
   return (
