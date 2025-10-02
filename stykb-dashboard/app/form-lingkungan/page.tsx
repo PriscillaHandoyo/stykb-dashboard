@@ -68,11 +68,11 @@ export default function FormLingkunganPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100">
       <Sidebar activeMenu="Form Lingkungan" onLogout={handleLogout} />
 
       {/* Main Content */}
-      <div className="flex-1 p-8">
+      <div className="ml-64 p-8">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
             Tambah Lingkungan Baru

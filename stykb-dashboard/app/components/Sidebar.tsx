@@ -24,12 +24,12 @@ export default function Sidebar({ activeMenu, onLogout }: SidebarProps) {
   };
 
   return (
-    <div className="w-64 bg-gray-800 text-white relative">
-      <div className="p-6">
+    <div className="fixed left-0 top-0 w-64 h-screen bg-gray-800 text-white flex flex-col">
+      <div className="p-6 flex-1 flex flex-col">
         <h2 className="text-xl font-bold mb-8">Menu</h2>
 
         {/* Menu Items */}
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1">
           {menuItems.map((item) => (
             <button
               key={item.name}
@@ -47,7 +47,7 @@ export default function Sidebar({ activeMenu, onLogout }: SidebarProps) {
         </nav>
 
         {/* Logout Button */}
-        <div className="absolute bottom-8 left-6 right-6">
+        <div className="mt-auto pb-8">
           <button
             onClick={onLogout}
             className="w-full flex items-center px-4 py-3 text-left rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
