@@ -1,15 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your login logic here
-    console.log("Login attempt:", { username, password });
+    setError("");
+
+    // Check credentials
+    if (username === "Admin" && password === "admin") {
+      // Successful login
+      router.push("/dashboard");
+    } else {
+      // Failed login
+      setError("Invalid username or password");
+    }
   };
 
   return (
@@ -75,6 +86,13 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Login Button */}
           <button
