@@ -22,7 +22,7 @@ export default function DashboardPage() {
         {/* Navigation */}
         <nav className="px-3 space-y-1">
           <a
-            href="#"
+            href="/dashboard"
             className="flex items-center gap-3 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg font-medium"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -31,7 +31,7 @@ export default function DashboardPage() {
             Dashboard
           </a>
           <a
-            href="#"
+            href="/form-lingkungan"
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
