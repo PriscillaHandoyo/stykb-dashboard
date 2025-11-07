@@ -18,6 +18,10 @@ interface LingkunganData {
 export default function DataLingkunganPage() {
   const [data, setData] = useState<LingkunganData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<LingkunganData | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState<LingkunganData | null>(null);
 
   useEffect(() => {
     loadData();
@@ -51,6 +55,7 @@ export default function DataLingkunganPage() {
         if (response.ok) {
           // Reload data after successful deletion
           loadData();
+          alert("Data berhasil dihapus!");
         } else {
           alert("Gagal menghapus data");
         }
@@ -58,6 +63,43 @@ export default function DataLingkunganPage() {
         console.error("Error deleting data:", error);
         alert("Terjadi kesalahan saat menghapus data");
       }
+    }
+  };
+
+  const handleDetail = (item: LingkunganData) => {
+    setSelectedItem(item);
+    setShowDetailModal(true);
+  };
+
+  const handleEdit = (item: LingkunganData) => {
+    setEditFormData(item);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData) return;
+
+    try {
+      // For now, we'll use a PUT endpoint. You'll need to add this to your API
+      const response = await fetch("/api/lingkungan", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editFormData),
+      });
+
+      if (response.ok) {
+        loadData();
+        setShowEditModal(false);
+        setEditFormData(null);
+        alert("Data berhasil diupdate!");
+      } else {
+        alert("Gagal mengupdate data");
+      }
+    } catch (error) {
+      console.error("Error updating data:", error);
+      alert("Terjadi kesalahan saat mengupdate data");
     }
   };
 
@@ -292,10 +334,16 @@ export default function DataLingkunganPage() {
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <button className="text-sm text-green-600 hover:text-green-700 font-medium">
+                              <button
+                                onClick={() => handleDetail(item)}
+                                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                              >
                                 Detail
                               </button>
-                              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                              >
                                 Edit
                               </button>
                               <button
@@ -339,6 +387,209 @@ export default function DataLingkunganPage() {
           </div>
         </div>
       </main>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Detail Lingkungan
+              </h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-600">
+                  Nama Lingkungan
+                </label>
+                <p className="text-gray-900 mt-1">
+                  {selectedItem.namaLingkungan}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-600">
+                  Ketua Lingkungan
+                </label>
+                <p className="text-gray-900 mt-1">{selectedItem.namaKetua}</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-600">
+                  Nomor Telepon
+                </label>
+                <p className="text-gray-900 mt-1">
+                  {selectedItem.nomorTelepon}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-600">
+                  Jumlah Tatib
+                </label>
+                <p className="text-gray-900 mt-1">{selectedItem.jumlahTatib}</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-600 block mb-2">
+                  Availability
+                </label>
+                {renderAvailability(selectedItem.availability)}
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editFormData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Edit Lingkungan
+              </h2>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditFormData(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Lingkungan
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.namaLingkungan}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      namaLingkungan: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ketua Lingkungan
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.namaKetua}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      namaKetua: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nomor Telepon
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.nomorTelepon}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      nomorTelepon: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jumlah Tatib
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.jumlahTatib}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      jumlahTatib: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditFormData(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

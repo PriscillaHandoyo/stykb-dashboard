@@ -43,6 +43,29 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const updatedItem = await request.json();
+    const filePath = path.join(process.cwd(), 'data', 'lingkungan.json');
+    
+    // Read existing data
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const existingData = JSON.parse(fileContents);
+    
+    // Find and update the item
+    const updatedData = existingData.map((item: any) => 
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    
+    // Write back to file
+    fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2));
+    
+    return NextResponse.json({ success: true, data: updatedItem });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update data' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();

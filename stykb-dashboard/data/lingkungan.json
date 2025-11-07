@@ -7,11 +7,18 @@
     "jumlahTatib": "12 orang",
     "availability": {
       "St. Yakobus": {
-        "Minggu": ["08:00", "11:00"],
-        "Sabtu": ["17:00"]
+        "Minggu": [
+          "08:00",
+          "11:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
       },
       "Pegangsaan 2": {
-        "Minggu": ["07:30"]
+        "Minggu": [
+          "07:30"
+        ]
       }
     }
   },
@@ -23,10 +30,14 @@
     "jumlahTatib": "8 orang",
     "availability": {
       "St. Yakobus": {
-        "Minggu": ["17:00"]
+        "Minggu": [
+          "17:00"
+        ]
       },
       "Pegangsaan 2": {
-        "Minggu": ["10:30"]
+        "Minggu": [
+          "10:30"
+        ]
       }
     }
   },
@@ -38,11 +49,41 @@
     "jumlahTatib": "15 orang",
     "availability": {
       "St. Yakobus": {
-        "Minggu": ["08:00", "17:00"],
-        "Sabtu": ["17:00"]
+        "Minggu": [
+          "08:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
       },
       "Pegangsaan 2": {
-        "Minggu": ["07:30", "10:30"]
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 4,
+    "namaLingkungan": "Agnes 2",
+    "namaKetua": "Pia",
+    "nomorTelepon": "0812345678",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "10:30"
+        ]
       }
     }
   }
