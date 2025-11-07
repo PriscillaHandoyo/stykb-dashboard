@@ -86,5 +86,30 @@
         ]
       }
     }
+  },
+  {
+    "id": 5,
+    "namaLingkungan": "Agnes 1",
+    "namaKetua": "Icat",
+    "nomorTelepon": "018372639292",
+    "jumlahTatib": "8",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
   }
 ]

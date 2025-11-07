@@ -2,18 +2,40 @@
 
 import React, { useState, useEffect } from "react";
 
+interface LingkunganData {
+  id: number;
+  namaLingkungan: string;
+  namaKetua: string;
+  nomorTelepon: string;
+  jumlahTatib: string;
+  availability: {
+    [church: string]: {
+      [day: string]: string[];
+    };
+  };
+}
+
+interface AssignedLingkungan {
+  name: string;
+  tatib: number;
+}
+
 interface Assignment {
   date: string;
   day: string;
   church: string;
   time: string;
-  lingkungan: string;
+  assignedLingkungan: AssignedLingkungan[];
+  totalTatib: number;
+  needsMore: boolean;
 }
 
 export default function KalendarPenugasanPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [lingkunganData, setLingkunganData] = useState<LingkunganData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const months = [
     "Januari",
@@ -34,8 +56,80 @@ export default function KalendarPenugasanPage() {
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   useEffect(() => {
-    generateAssignments();
-  }, [selectedYear, selectedMonth]);
+    loadLingkunganData();
+  }, []);
+
+  useEffect(() => {
+    if (lingkunganData.length > 0) {
+      generateAssignments();
+    }
+  }, [selectedYear, selectedMonth, lingkunganData]);
+
+  const loadLingkunganData = async () => {
+    try {
+      const response = await fetch("/api/lingkungan");
+      const data = await response.json();
+      setLingkunganData(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading lingkungan data:", error);
+      setLoading(false);
+    }
+  };
+
+  const assignLingkunganToSlot = (
+    church: string,
+    day: string,
+    time: string
+  ): { assigned: AssignedLingkungan[]; total: number; needsMore: boolean } => {
+    const MIN_TATIB = 20;
+    const assigned: AssignedLingkungan[] = [];
+    let totalTatib = 0;
+
+    // Normalize church name for matching
+    const normalizedChurch = church.includes("Yakobus")
+      ? "St. Yakobus"
+      : "Pegangsaan 2";
+
+    // Filter lingkungan that are available for this slot
+    const availableLingkungan = lingkunganData.filter((lingkungan) => {
+      const availability = lingkungan.availability[normalizedChurch];
+      if (!availability) return false;
+
+      const daySchedule =
+        day === "Minggu" ? availability.Minggu : availability.Sabtu;
+      if (!daySchedule) return false;
+
+      return daySchedule.includes(time);
+    });
+
+    // Sort by tatib count (highest first) for efficient assignment
+    availableLingkungan.sort((a, b) => {
+      const tatibA = parseInt(a.jumlahTatib) || 0;
+      const tatibB = parseInt(b.jumlahTatib) || 0;
+      return tatibB - tatibA;
+    });
+
+    // Assign lingkungan until we reach minimum tatib
+    for (const lingkungan of availableLingkungan) {
+      const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+      assigned.push({
+        name: lingkungan.namaLingkungan,
+        tatib: tatib,
+      });
+      totalTatib += tatib;
+
+      if (totalTatib >= MIN_TATIB) {
+        break;
+      }
+    }
+
+    return {
+      assigned,
+      total: totalTatib,
+      needsMore: totalTatib < MIN_TATIB,
+    };
+  };
 
   const generateAssignments = () => {
     const assignments: Assignment[] = [];
@@ -57,53 +151,98 @@ export default function KalendarPenugasanPage() {
         // St. Yakobus assignments
         if (dayOfWeek === 0) {
           // Sunday
+          const slot0800 = assignLingkunganToSlot(
+            "St. Yakobus",
+            dayName,
+            "08:00"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "08:00",
-            lingkungan: "-",
+            assignedLingkungan: slot0800.assigned,
+            totalTatib: slot0800.total,
+            needsMore: slot0800.needsMore,
           });
+
+          const slot1100 = assignLingkunganToSlot(
+            "St. Yakobus",
+            dayName,
+            "11:00"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "11:00",
-            lingkungan: "-",
+            assignedLingkungan: slot1100.assigned,
+            totalTatib: slot1100.total,
+            needsMore: slot1100.needsMore,
           });
+
+          const slot1700 = assignLingkunganToSlot(
+            "St. Yakobus",
+            dayName,
+            "17:00"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "17:00",
-            lingkungan: "-",
+            assignedLingkungan: slot1700.assigned,
+            totalTatib: slot1700.total,
+            needsMore: slot1700.needsMore,
           });
         } else {
           // Saturday
+          const slotSat = assignLingkunganToSlot(
+            "St. Yakobus",
+            dayName,
+            "17:00"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "17:00",
-            lingkungan: "-",
+            assignedLingkungan: slotSat.assigned,
+            totalTatib: slotSat.total,
+            needsMore: slotSat.needsMore,
           });
         }
 
         // Pegangsaan 2 assignments (Sunday only)
         if (dayOfWeek === 0) {
+          const slotP0730 = assignLingkunganToSlot(
+            "Pegangsaan 2",
+            dayName,
+            "07:30"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "Pegangsaan 2",
             time: "07:30",
-            lingkungan: "-",
+            assignedLingkungan: slotP0730.assigned,
+            totalTatib: slotP0730.total,
+            needsMore: slotP0730.needsMore,
           });
+
+          const slotP1030 = assignLingkunganToSlot(
+            "Pegangsaan 2",
+            dayName,
+            "10:30"
+          );
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "Pegangsaan 2",
             time: "10:30",
-            lingkungan: "-",
+            assignedLingkungan: slotP1030.assigned,
+            totalTatib: slotP1030.total,
+            needsMore: slotP1030.needsMore,
           });
         }
       }
@@ -389,13 +528,78 @@ export default function KalendarPenugasanPage() {
                               <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
                                 {assignment.time}
                               </td>
-                              <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                                {assignment.lingkungan}
+                              <td className="border border-gray-200 py-3 px-4 text-sm">
+                                {assignment.assignedLingkungan.length === 0 ? (
+                                  <span className="text-gray-400">
+                                    Belum ada assignment
+                                  </span>
+                                ) : (
+                                  <div className="space-y-1">
+                                    {assignment.assignedLingkungan.map(
+                                      (ling, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="text-gray-900"
+                                        >
+                                          {ling.name}
+                                          <span className="text-xs text-gray-500 ml-2">
+                                            ({ling.tatib} tatib)
+                                          </span>
+                                        </div>
+                                      )
+                                    )}
+                                    <div className="mt-2 pt-1 border-t border-gray-200">
+                                      <span
+                                        className={`text-xs font-medium ${
+                                          assignment.needsMore
+                                            ? "text-red-600"
+                                            : "text-green-600"
+                                        }`}
+                                      >
+                                        Total: {assignment.totalTatib} tatib
+                                        {assignment.needsMore &&
+                                          " (Kurang dari 20)"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
                               </td>
                               <td className="border border-gray-200 py-3 px-4 text-sm">
-                                <button className="text-blue-600 hover:text-blue-700 font-medium">
-                                  Assign
-                                </button>
+                                {assignment.needsMore ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    Butuh Lebih
+                                  </span>
+                                ) : assignment.assignedLingkungan.length > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    Cukup
+                                  </span>
+                                ) : (
+                                  <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                    Assign
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}
