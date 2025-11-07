@@ -17,15 +17,23 @@ interface LingkunganData {
 
 export default function DataLingkunganPage() {
   const [data, setData] = useState<LingkunganData[]>([]);
+  const [filteredData, setFilteredData] = useState<LingkunganData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<LingkunganData | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState<LingkunganData | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterChurch, setFilterChurch] = useState("all");
+  const [sortBy, setSortBy] = useState("default");
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [data, searchQuery, filterChurch, sortBy]);
 
   const loadData = () => {
     setLoading(true);
@@ -33,12 +41,78 @@ export default function DataLingkunganPage() {
       .then((response) => response.json())
       .then((jsonData) => {
         setData(jsonData);
+        setFilteredData(jsonData);
         setLoading(false);
       })
       .catch((error) => {
         console.error("Error loading data:", error);
         setLoading(false);
       });
+  };
+
+  const applyFilters = () => {
+    let filtered = [...data];
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (item) =>
+          item.namaLingkungan
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          item.namaKetua.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.nomorTelepon.includes(searchQuery)
+      );
+    }
+
+    // Apply church filter
+    if (filterChurch !== "all") {
+      filtered = filtered.filter((item) => {
+        const churches = Object.keys(item.availability);
+        return churches.some((church) =>
+          church.toLowerCase().includes(filterChurch.toLowerCase())
+        );
+      });
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case "name-asc":
+        filtered.sort((a, b) =>
+          a.namaLingkungan.localeCompare(b.namaLingkungan)
+        );
+        break;
+      case "name-desc":
+        filtered.sort((a, b) =>
+          b.namaLingkungan.localeCompare(a.namaLingkungan)
+        );
+        break;
+      case "tatib-asc":
+        filtered.sort((a, b) => {
+          const numA = parseInt(a.jumlahTatib) || 0;
+          const numB = parseInt(b.jumlahTatib) || 0;
+          return numA - numB;
+        });
+        break;
+      case "tatib-desc":
+        filtered.sort((a, b) => {
+          const numA = parseInt(a.jumlahTatib) || 0;
+          const numB = parseInt(b.jumlahTatib) || 0;
+          return numB - numA;
+        });
+        break;
+      case "ketua-asc":
+        filtered.sort((a, b) => a.namaKetua.localeCompare(b.namaKetua));
+        break;
+      case "ketua-desc":
+        filtered.sort((a, b) => b.namaKetua.localeCompare(a.namaKetua));
+        break;
+      default:
+        // Keep original order
+        break;
+    }
+
+    setFilteredData(filtered);
   };
 
   const handleDelete = async (id: number) => {
@@ -286,6 +360,87 @@ export default function DataLingkunganPage() {
               </div>
             ) : (
               <>
+                {/* Search and Filter Section */}
+                <div className="mb-6 flex flex-col sm:flex-row gap-4">
+                  {/* Search Bar */}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <svg
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Cari nama lingkungan, ketua, atau nomor telepon..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filter by Church */}
+                  <div className="sm:w-64">
+                    <select
+                      value={filterChurch}
+                      onChange={(e) => setFilterChurch(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                    >
+                      <option value="all">Semua Gereja</option>
+                      <option value="yakobus">St. Yakobus</option>
+                      <option value="pegangsaan">Pegangsaan 2</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="sm:w-64">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                    >
+                      <option value="default">Urutkan</option>
+                      <option value="name-asc">Nama A-Z</option>
+                      <option value="name-desc">Nama Z-A</option>
+                      <option value="ketua-asc">Ketua A-Z</option>
+                      <option value="ketua-desc">Ketua Z-A</option>
+                      <option value="tatib-asc">Tatib Terendah</option>
+                      <option value="tatib-desc">Tatib Tertinggi</option>
+                    </select>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  {(searchQuery ||
+                    filterChurch !== "all" ||
+                    sortBy !== "default") && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setFilterChurch("all");
+                        setSortBy("default");
+                      }}
+                      className="px-4 py-2.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {/* Results Count */}
+                <div className="mb-4 text-sm text-gray-600">
+                  Menampilkan {filteredData.length} dari {data.length}{" "}
+                  lingkungan
+                </div>
+
                 {/* Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -312,50 +467,61 @@ export default function DataLingkunganPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-4 px-4 text-sm text-gray-900">
-                            {item.namaLingkungan}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-700">
-                            {item.namaKetua}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-700">
-                            {item.nomorTelepon}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-700">
-                            {item.jumlahTatib}
-                          </td>
-                          <td className="py-4 px-4">
-                            {renderAvailability(item.availability)}
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleDetail(item)}
-                                className="text-sm text-green-600 hover:text-green-700 font-medium"
-                              >
-                                Detail
-                              </button>
-                              <button
-                                onClick={() => handleEdit(item)}
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="text-sm text-red-600 hover:text-red-700 font-medium"
-                              >
-                                Hapus
-                              </button>
-                            </div>
+                      {filteredData.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="py-8 text-center text-gray-500"
+                          >
+                            Tidak ada data yang sesuai dengan pencarian
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredData.map((item) => (
+                          <tr
+                            key={item.id}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="py-4 px-4 text-sm text-gray-900">
+                              {item.namaLingkungan}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-700">
+                              {item.namaKetua}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-700">
+                              {item.nomorTelepon}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-700">
+                              {item.jumlahTatib}
+                            </td>
+                            <td className="py-4 px-4">
+                              {renderAvailability(item.availability)}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleDetail(item)}
+                                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                                >
+                                  Detail
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="text-sm text-red-600 hover:text-red-700 font-medium"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
