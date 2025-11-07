@@ -1,0 +1,49 @@
+[
+  {
+    "id": 1,
+    "namaLingkungan": "Lingkungan Santa Maria",
+    "namaKetua": "Bapak Antonius",
+    "nomorTelepon": "081234567890",
+    "jumlahTatib": "12 orang",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": ["08:00", "11:00"],
+        "Sabtu": ["17:00"]
+      },
+      "Pegangsaan 2": {
+        "Minggu": ["07:30"]
+      }
+    }
+  },
+  {
+    "id": 2,
+    "namaLingkungan": "Lingkungan Santo Yosef",
+    "namaKetua": "Ibu Maria Magdalena",
+    "nomorTelepon": "081298765432",
+    "jumlahTatib": "8 orang",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": ["17:00"]
+      },
+      "Pegangsaan 2": {
+        "Minggu": ["10:30"]
+      }
+    }
+  },
+  {
+    "id": 3,
+    "namaLingkungan": "Lingkungan Santo Petrus",
+    "namaKetua": "Bapak Fransiskus",
+    "nomorTelepon": "081356789012",
+    "jumlahTatib": "15 orang",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": ["08:00", "17:00"],
+        "Sabtu": ["17:00"]
+      },
+      "Pegangsaan 2": {
+        "Minggu": ["07:30", "10:30"]
+      }
+    }
+  }
+]

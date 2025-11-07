@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function FormLingkunganPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     namaLingkungan: "",
     namaKetua: "",
@@ -18,6 +20,7 @@ export default function FormLingkunganPage() {
       },
     },
   });
+  const [saving, setSaving] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -61,10 +64,48 @@ export default function FormLingkunganPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Add your form submission logic here
+    setSaving(true);
+
+    try {
+      // Transform data to match the JSON structure
+      const dataToSave = {
+        namaLingkungan: formData.namaLingkungan,
+        namaKetua: formData.namaKetua,
+        nomorTelepon: formData.nomorTelepon,
+        jumlahTatib: formData.jumlahTatib,
+        availability: {
+          "St. Yakobus": {
+            Minggu: formData.availability["Gereja St. Yakobus"].Minggu,
+            Sabtu: formData.availability["Gereja St. Yakobus"].Sabtu,
+          },
+          "Pegangsaan 2": {
+            Minggu: formData.availability["Pegangsaan 2"].Minggu,
+          },
+        },
+      };
+
+      const response = await fetch("/api/lingkungan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dataToSave),
+      });
+
+      if (response.ok) {
+        alert("Data berhasil disimpan!");
+        router.push("/data-lingkungan");
+      } else {
+        alert("Gagal menyimpan data");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan saat menyimpan data");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -106,7 +147,7 @@ export default function FormLingkunganPage() {
             Form Lingkungan
           </a>
           <a
-            href="#"
+            href="/data-lingkungan"
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -414,9 +455,10 @@ export default function FormLingkunganPage() {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
                 >
-                  Simpan Data Lingkungan
+                  {saving ? "Menyimpan..." : "Simpan Data Lingkungan"}
                 </button>
               </div>
             </form>
