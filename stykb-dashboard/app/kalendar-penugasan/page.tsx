@@ -77,75 +77,87 @@ export default function KalendarPenugasanPage() {
     }
   };
 
-  const assignLingkunganToSlot = (
-    church: string,
-    day: string,
-    time: string,
-    assignedThisMonth: Set<string>
-  ): { assigned: AssignedLingkungan[]; total: number; needsMore: boolean } => {
-    const MIN_TATIB = 20;
-    const assigned: AssignedLingkungan[] = [];
-    let totalTatib = 0;
+  // Seeded random number generator for consistent shuffling within a month
+  const seededRandom = (seed: number) => {
+    let value = seed;
+    return () => {
+      value = (value * 9301 + 49297) % 233280;
+      return value / 233280;
+    };
+  };
 
-    // Normalize church name for matching
-    const normalizedChurch = church.includes("Yakobus")
-      ? "St. Yakobus"
-      : "Pegangsaan 2";
+  // Shuffle array with a seed for consistent results per month
+  const shuffleArray = <T,>(array: T[], seed: number): T[] => {
+    const shuffled = [...array];
+    const random = seededRandom(seed);
 
-    // Filter lingkungan that are available for this slot AND not yet assigned this month
-    const availableLingkungan = lingkunganData.filter((lingkungan) => {
-      // Check if already assigned this month
-      if (assignedThisMonth.has(lingkungan.namaLingkungan)) {
-        return false;
-      }
-
-      const availability = lingkungan.availability[normalizedChurch];
-      if (!availability) return false;
-
-      const daySchedule =
-        day === "Minggu" ? availability.Minggu : availability.Sabtu;
-      if (!daySchedule) return false;
-
-      return daySchedule.includes(time);
-    });
-
-    // Sort by tatib count (highest first) for efficient assignment
-    availableLingkungan.sort((a, b) => {
-      const tatibA = parseInt(a.jumlahTatib) || 0;
-      const tatibB = parseInt(b.jumlahTatib) || 0;
-      return tatibB - tatibA;
-    });
-
-    // Assign lingkungan until we reach minimum tatib
-    for (const lingkungan of availableLingkungan) {
-      const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-      assigned.push({
-        name: lingkungan.namaLingkungan,
-        tatib: tatib,
-      });
-      totalTatib += tatib;
-
-      // Mark this lingkungan as assigned for this month
-      assignedThisMonth.add(lingkungan.namaLingkungan);
-
-      if (totalTatib >= MIN_TATIB) {
-        break;
-      }
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    return {
-      assigned,
-      total: totalTatib,
-      needsMore: totalTatib < MIN_TATIB,
-    };
+    return shuffled;
   };
 
   const generateAssignments = () => {
     const assignments: Assignment[] = [];
     const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
 
-    // Track which lingkungan have been assigned this month
-    const assignedThisMonth = new Set<string>();
+    // Create a unique seed for this month to ensure consistent but different shuffling per month
+    const monthSeed = selectedYear * 12 + selectedMonth;
+
+    // Shuffle all lingkungan for this month
+    const shuffledLingkungan = shuffleArray(lingkunganData, monthSeed);
+
+    // Create a pool of lingkungan that haven't been assigned yet this month
+    const unassignedPool = [...shuffledLingkungan];
+
+    // Helper function to get next available lingkungan for a slot
+    const getNextLingkunganForSlot = (
+      church: string,
+      day: string,
+      time: string
+    ): AssignedLingkungan[] => {
+      const MIN_TATIB = 20;
+      const assigned: AssignedLingkungan[] = [];
+      let totalTatib = 0;
+
+      // Normalize church name for matching
+      const normalizedChurch = church.includes("Yakobus")
+        ? "St. Yakobus"
+        : "Pegangsaan 2";
+
+      // Try to assign lingkungan from the unassigned pool
+      for (let i = unassignedPool.length - 1; i >= 0; i--) {
+        const lingkungan = unassignedPool[i];
+
+        // Check if this lingkungan is available for this slot
+        const availability = lingkungan.availability[normalizedChurch];
+        if (!availability) continue;
+
+        const daySchedule =
+          day === "Minggu" ? availability.Minggu : availability.Sabtu;
+        if (!daySchedule || !daySchedule.includes(time)) continue;
+
+        // This lingkungan is available, assign it
+        const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+        assigned.push({
+          name: lingkungan.namaLingkungan,
+          tatib: tatib,
+        });
+        totalTatib += tatib;
+
+        // Remove from unassigned pool
+        unassignedPool.splice(i, 1);
+
+        // If we've reached minimum tatib, stop assigning for this slot
+        if (totalTatib >= MIN_TATIB) {
+          break;
+        }
+      }
+
+      return assigned;
+    };
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(selectedYear, selectedMonth, day);
@@ -163,104 +175,104 @@ export default function KalendarPenugasanPage() {
         // St. Yakobus assignments
         if (dayOfWeek === 0) {
           // Sunday
-          const slot0800 = assignLingkunganToSlot(
+          const assigned0800 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "08:00",
-            assignedThisMonth
+            "08:00"
           );
+          const total0800 = assigned0800.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "08:00",
-            assignedLingkungan: slot0800.assigned,
-            totalTatib: slot0800.total,
-            needsMore: slot0800.needsMore,
+            assignedLingkungan: assigned0800,
+            totalTatib: total0800,
+            needsMore: total0800 < 20,
           });
 
-          const slot1100 = assignLingkunganToSlot(
+          const assigned1100 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "11:00",
-            assignedThisMonth
+            "11:00"
           );
+          const total1100 = assigned1100.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "11:00",
-            assignedLingkungan: slot1100.assigned,
-            totalTatib: slot1100.total,
-            needsMore: slot1100.needsMore,
+            assignedLingkungan: assigned1100,
+            totalTatib: total1100,
+            needsMore: total1100 < 20,
           });
 
-          const slot1700 = assignLingkunganToSlot(
+          const assigned1700 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "17:00",
-            assignedThisMonth
+            "17:00"
           );
+          const total1700 = assigned1700.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "17:00",
-            assignedLingkungan: slot1700.assigned,
-            totalTatib: slot1700.total,
-            needsMore: slot1700.needsMore,
+            assignedLingkungan: assigned1700,
+            totalTatib: total1700,
+            needsMore: total1700 < 20,
           });
         } else {
           // Saturday
-          const slotSat = assignLingkunganToSlot(
+          const assignedSat = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "17:00",
-            assignedThisMonth
+            "17:00"
           );
+          const totalSat = assignedSat.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "St. Yakobus",
             time: "17:00",
-            assignedLingkungan: slotSat.assigned,
-            totalTatib: slotSat.total,
-            needsMore: slotSat.needsMore,
+            assignedLingkungan: assignedSat,
+            totalTatib: totalSat,
+            needsMore: totalSat < 20,
           });
         }
 
         // Pegangsaan 2 assignments (Sunday only)
         if (dayOfWeek === 0) {
-          const slotP0730 = assignLingkunganToSlot(
+          const assignedP0730 = getNextLingkunganForSlot(
             "Pegangsaan 2",
             dayName,
-            "07:30",
-            assignedThisMonth
+            "07:30"
           );
+          const totalP0730 = assignedP0730.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "Pegangsaan 2",
             time: "07:30",
-            assignedLingkungan: slotP0730.assigned,
-            totalTatib: slotP0730.total,
-            needsMore: slotP0730.needsMore,
+            assignedLingkungan: assignedP0730,
+            totalTatib: totalP0730,
+            needsMore: totalP0730 < 20,
           });
 
-          const slotP1030 = assignLingkunganToSlot(
+          const assignedP1030 = getNextLingkunganForSlot(
             "Pegangsaan 2",
             dayName,
-            "10:30",
-            assignedThisMonth
+            "10:30"
           );
+          const totalP1030 = assignedP1030.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
             date: dateStr,
             day: dayName,
             church: "Pegangsaan 2",
             time: "10:30",
-            assignedLingkungan: slotP1030.assigned,
-            totalTatib: slotP1030.total,
-            needsMore: slotP1030.needsMore,
+            assignedLingkungan: assignedP1030,
+            totalTatib: totalP1030,
+            needsMore: totalP1030 < 20,
           });
         }
       }

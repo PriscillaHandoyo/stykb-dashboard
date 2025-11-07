@@ -111,5 +111,955 @@
         ]
       }
     }
+  },
+  {
+    "id": 6,
+    "namaLingkungan": "Agnes 3",
+    "namaKetua": "Irwan",
+    "nomorTelepon": "727104103810",
+    "jumlahTatib": "24",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 7,
+    "namaLingkungan": "Maria 1",
+    "namaKetua": "Noni",
+    "nomorTelepon": "81417491741",
+    "jumlahTatib": "15",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 8,
+    "namaLingkungan": "Maria 2",
+    "namaKetua": "Chibi",
+    "nomorTelepon": "1471984174691491",
+    "jumlahTatib": "15",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 9,
+    "namaLingkungan": "Maria 3",
+    "namaKetua": "Gabe",
+    "nomorTelepon": "17416461947",
+    "jumlahTatib": "10",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 10,
+    "namaLingkungan": "Petrus 1",
+    "namaKetua": "Garreth",
+    "nomorTelepon": "47291012341",
+    "jumlahTatib": "18",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 11,
+    "namaLingkungan": "Petrus 2",
+    "namaKetua": "Joni",
+    "nomorTelepon": "23747298284914",
+    "jumlahTatib": "17",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 12,
+    "namaLingkungan": "Petrus 3",
+    "namaKetua": "Lola",
+    "nomorTelepon": "667823994",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 13,
+    "namaLingkungan": "Matius 1",
+    "namaKetua": "Bani",
+    "nomorTelepon": "41991941874",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 14,
+    "namaLingkungan": "Matius 2",
+    "namaKetua": "Harli",
+    "nomorTelepon": "264862348161784",
+    "jumlahTatib": "22",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 15,
+    "namaLingkungan": "Matius 3",
+    "namaKetua": "Ganang",
+    "nomorTelepon": "429274828749",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 16,
+    "namaLingkungan": "Felix 1",
+    "namaKetua": "Budi",
+    "nomorTelepon": "2798471917414",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 17,
+    "namaLingkungan": "Felix 2",
+    "namaKetua": "Tatang",
+    "nomorTelepon": "89984723984",
+    "jumlahTatib": "25",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 18,
+    "namaLingkungan": "Felix 3",
+    "namaKetua": "Rani",
+    "nomorTelepon": "9824248914711",
+    "jumlahTatib": "24",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 19,
+    "namaLingkungan": "Yosef 1",
+    "namaKetua": "Putra",
+    "nomorTelepon": "189741749164164",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 20,
+    "namaLingkungan": "Yosef 2",
+    "namaKetua": "Yadi",
+    "nomorTelepon": "14164191414",
+    "jumlahTatib": "25",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "10:30",
+          "07:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 21,
+    "namaLingkungan": "Yosef 3",
+    "namaKetua": "Cecil",
+    "nomorTelepon": "18491874189471",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 22,
+    "namaLingkungan": "Gabirel 1 ",
+    "namaKetua": "Dika",
+    "nomorTelepon": "7124748924242",
+    "jumlahTatib": "24",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 23,
+    "namaLingkungan": "Gabriel 2",
+    "namaKetua": "Ocep",
+    "nomorTelepon": "24712471641",
+    "jumlahTatib": "26",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 24,
+    "namaLingkungan": "Gabriel 3",
+    "namaKetua": "Wesley",
+    "nomorTelepon": "187241947141",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 25,
+    "namaLingkungan": "Mikaela 1 ",
+    "namaKetua": "Robin",
+    "nomorTelepon": "1741874129831",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 26,
+    "namaLingkungan": "Mikaela 2",
+    "namaKetua": "John",
+    "nomorTelepon": "471984189124",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 27,
+    "namaLingkungan": "Mikaela 3",
+    "namaKetua": "Lopez",
+    "nomorTelepon": "12978417414",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 28,
+    "namaLingkungan": "Xavier 1",
+    "namaKetua": "Adrian",
+    "nomorTelepon": "471941781934",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 29,
+    "namaLingkungan": "Xavier 2",
+    "namaKetua": "Ben",
+    "nomorTelepon": "141274917918",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 30,
+    "namaLingkungan": "Xavier 3",
+    "namaKetua": "Abel",
+    "nomorTelepon": "13891472491",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 31,
+    "namaLingkungan": "Anastasia 1",
+    "namaKetua": "Tani",
+    "nomorTelepon": "1793471298317",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 32,
+    "namaLingkungan": "Anastasia 2",
+    "namaKetua": "Arizona",
+    "nomorTelepon": "017914184",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 33,
+    "namaLingkungan": "Anastasia 3",
+    "namaKetua": "Meredith",
+    "nomorTelepon": "814198417819412",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 34,
+    "namaLingkungan": "Yohanes 1",
+    "namaKetua": "Owen",
+    "nomorTelepon": "128749718712",
+    "jumlahTatib": "22",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 35,
+    "namaLingkungan": "Yohanes 2",
+    "namaKetua": "Derek",
+    "nomorTelepon": "127491718912",
+    "jumlahTatib": "22",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 36,
+    "namaLingkungan": "Yohanes 3",
+    "namaKetua": "Malachi",
+    "nomorTelepon": "3274729718943",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 37,
+    "namaLingkungan": "Igantius 1",
+    "namaKetua": "Asher",
+    "nomorTelepon": "713910293",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 38,
+    "namaLingkungan": "Ignatius 2",
+    "namaKetua": "Megan",
+    "nomorTelepon": "3829478239472389",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 39,
+    "namaLingkungan": "Ignatius 3",
+    "namaKetua": "Daniella",
+    "nomorTelepon": "327427298427984",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 40,
+    "namaLingkungan": "Markus 1",
+    "namaKetua": "Sophia",
+    "nomorTelepon": "4782278429842",
+    "jumlahTatib": "24",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 41,
+    "namaLingkungan": "Markus 2",
+    "namaKetua": "Yoonchae",
+    "nomorTelepon": "8723479827982742",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 42,
+    "namaLingkungan": "Markus 2",
+    "namaKetua": "Manon",
+    "nomorTelepon": "32678416722",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 43,
+    "namaLingkungan": "Markus 4",
+    "namaKetua": "Lara",
+    "nomorTelepon": "87294712894",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
   }
 ]
