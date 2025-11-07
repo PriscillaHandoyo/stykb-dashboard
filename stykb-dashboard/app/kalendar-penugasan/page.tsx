@@ -80,7 +80,8 @@ export default function KalendarPenugasanPage() {
   const assignLingkunganToSlot = (
     church: string,
     day: string,
-    time: string
+    time: string,
+    assignedThisMonth: Set<string>
   ): { assigned: AssignedLingkungan[]; total: number; needsMore: boolean } => {
     const MIN_TATIB = 20;
     const assigned: AssignedLingkungan[] = [];
@@ -91,8 +92,13 @@ export default function KalendarPenugasanPage() {
       ? "St. Yakobus"
       : "Pegangsaan 2";
 
-    // Filter lingkungan that are available for this slot
+    // Filter lingkungan that are available for this slot AND not yet assigned this month
     const availableLingkungan = lingkunganData.filter((lingkungan) => {
+      // Check if already assigned this month
+      if (assignedThisMonth.has(lingkungan.namaLingkungan)) {
+        return false;
+      }
+
       const availability = lingkungan.availability[normalizedChurch];
       if (!availability) return false;
 
@@ -119,6 +125,9 @@ export default function KalendarPenugasanPage() {
       });
       totalTatib += tatib;
 
+      // Mark this lingkungan as assigned for this month
+      assignedThisMonth.add(lingkungan.namaLingkungan);
+
       if (totalTatib >= MIN_TATIB) {
         break;
       }
@@ -134,6 +143,9 @@ export default function KalendarPenugasanPage() {
   const generateAssignments = () => {
     const assignments: Assignment[] = [];
     const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+    // Track which lingkungan have been assigned this month
+    const assignedThisMonth = new Set<string>();
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(selectedYear, selectedMonth, day);
@@ -154,7 +166,8 @@ export default function KalendarPenugasanPage() {
           const slot0800 = assignLingkunganToSlot(
             "St. Yakobus",
             dayName,
-            "08:00"
+            "08:00",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
@@ -169,7 +182,8 @@ export default function KalendarPenugasanPage() {
           const slot1100 = assignLingkunganToSlot(
             "St. Yakobus",
             dayName,
-            "11:00"
+            "11:00",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
@@ -184,7 +198,8 @@ export default function KalendarPenugasanPage() {
           const slot1700 = assignLingkunganToSlot(
             "St. Yakobus",
             dayName,
-            "17:00"
+            "17:00",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
@@ -200,7 +215,8 @@ export default function KalendarPenugasanPage() {
           const slotSat = assignLingkunganToSlot(
             "St. Yakobus",
             dayName,
-            "17:00"
+            "17:00",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
@@ -218,7 +234,8 @@ export default function KalendarPenugasanPage() {
           const slotP0730 = assignLingkunganToSlot(
             "Pegangsaan 2",
             dayName,
-            "07:30"
+            "07:30",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
@@ -233,7 +250,8 @@ export default function KalendarPenugasanPage() {
           const slotP1030 = assignLingkunganToSlot(
             "Pegangsaan 2",
             dayName,
-            "10:30"
+            "10:30",
+            assignedThisMonth
           );
           assignments.push({
             date: dateStr,
