@@ -1,0 +1,217 @@
+{
+  "schedules": {
+    "rabuAbu": {
+      "date": "2025-11-19",
+      "churches": [
+        {
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "12:45",
+              "minTatib": "29"
+            }
+          ]
+        },
+        {
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "12:46",
+              "minTatib": "30"
+            }
+          ]
+        }
+      ]
+    },
+    "mingguPalma": {
+      "date": "2025-11-23",
+      "churches": [
+        {
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "12:48",
+              "minTatib": "30"
+            }
+          ]
+        },
+        {
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "12:48",
+              "minTatib": "29"
+            }
+          ]
+        }
+      ]
+    },
+    "kamisPutih": {
+      "date": "2025-11-27",
+      "churches": [
+        {
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "12:49",
+              "minTatib": "40"
+            },
+            {
+              "time": "12:49",
+              "minTatib": "40"
+            }
+          ]
+        },
+        {
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "12:49",
+              "minTatib": "35"
+            },
+            {
+              "time": "12:49",
+              "minTatib": "35"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "assignments": {
+    "rabuAbu": [
+      {
+        "church": "St. Yakobus",
+        "time": "12:45",
+        "minTatib": 29,
+        "assignedLingkungan": [
+          {
+            "name": "Gabriel 2",
+            "tatib": 26
+          },
+          {
+            "name": "Felix 2",
+            "tatib": 25
+          }
+        ],
+        "totalTatib": 51
+      },
+      {
+        "church": "Pegangsaan 2",
+        "time": "12:46",
+        "minTatib": 30,
+        "assignedLingkungan": [
+          {
+            "name": "Yosef 2",
+            "tatib": 25
+          },
+          {
+            "name": "Agnes 3",
+            "tatib": 24
+          }
+        ],
+        "totalTatib": 49
+      }
+    ],
+    "mingguPalma": [
+      {
+        "church": "St. Yakobus",
+        "time": "12:48",
+        "minTatib": 30,
+        "assignedLingkungan": [
+          {
+            "name": "Felix 3",
+            "tatib": 24
+          },
+          {
+            "name": "Gabirel 1 ",
+            "tatib": 24
+          }
+        ],
+        "totalTatib": 48
+      },
+      {
+        "church": "Pegangsaan 2",
+        "time": "12:48",
+        "minTatib": 29,
+        "assignedLingkungan": [
+          {
+            "name": "Markus 1",
+            "tatib": 24
+          },
+          {
+            "name": "Matius 3",
+            "tatib": 23
+          }
+        ],
+        "totalTatib": 47
+      }
+    ],
+    "kamisPutih": [
+      {
+        "church": "St. Yakobus",
+        "time": "12:49",
+        "minTatib": 40,
+        "assignedLingkungan": [
+          {
+            "name": "Yosef 3",
+            "tatib": 23
+          },
+          {
+            "name": "Mikaela 3",
+            "tatib": 23
+          }
+        ],
+        "totalTatib": 46
+      },
+      {
+        "church": "St. Yakobus",
+        "time": "12:49",
+        "minTatib": 40,
+        "assignedLingkungan": [
+          {
+            "name": "Anastasia 2",
+            "tatib": 23
+          },
+          {
+            "name": "Yohanes 3",
+            "tatib": 23
+          }
+        ],
+        "totalTatib": 46
+      },
+      {
+        "church": "Pegangsaan 2",
+        "time": "12:49",
+        "minTatib": 35,
+        "assignedLingkungan": [
+          {
+            "name": "Ignatius 2",
+            "tatib": 23
+          },
+          {
+            "name": "Markus 2",
+            "tatib": 23
+          }
+        ],
+        "totalTatib": 46
+      },
+      {
+        "church": "Pegangsaan 2",
+        "time": "12:49",
+        "minTatib": 35,
+        "assignedLingkungan": [
+          {
+            "name": "Markus 4",
+            "tatib": 23
+          },
+          {
+            "name": "Matius 2",
+            "tatib": 22
+          }
+        ],
+        "totalTatib": 45
+      }
+    ]
+  }
+}
