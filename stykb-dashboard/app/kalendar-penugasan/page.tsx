@@ -52,20 +52,24 @@ interface PaskahData {
 }
 
 interface MisaLainnyaData {
-  schedule: {
+  celebrations: Array<{
     name: string;
     date: string;
-    churches: any[];
-  };
-  assignments: Array<{
-    church: string;
-    time: string;
-    minTatib: number;
-    assignedLingkungan: Array<{
+    churches: Array<{
       name: string;
-      tatib: number;
+      time: string;
+      minTatib: number;
     }>;
-    totalTatib: number;
+    assignments: Array<{
+      church: string;
+      time: string;
+      minTatib: number;
+      assignedLingkungan: Array<{
+        name: string;
+        tatib: number;
+      }>;
+      totalTatib: number;
+    }>;
   }>;
 }
 
@@ -201,32 +205,40 @@ export default function KalendarPenugasanPage() {
       const dateMap: { [date: string]: string } = {};
       const assignedLingkunganSet = new Set<string>();
 
-      if (data.schedule && data.schedule.date) {
-        const dateObj = new Date(data.schedule.date);
-        const formattedDate = dateObj.toLocaleDateString("id-ID", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
-        dateMap[formattedDate] = data.schedule.name;
-
-        // Check if this Misa Lainnya date is in the selected month/year
-        const celebrationMonth = dateObj.getMonth();
-        const celebrationYear = dateObj.getFullYear();
-
-        if (
-          celebrationMonth === selectedMonth &&
-          celebrationYear === selectedYear
-        ) {
-          // Collect all assigned lingkungan from this celebration
-          if (data.assignments && data.assignments.length > 0) {
-            data.assignments.forEach((assignment) => {
-              assignment.assignedLingkungan.forEach((ling) => {
-                assignedLingkunganSet.add(ling.name);
-              });
+      // Handle multiple celebrations
+      if (data.celebrations && data.celebrations.length > 0) {
+        data.celebrations.forEach((celebration) => {
+          if (celebration.date) {
+            const dateObj = new Date(celebration.date);
+            const formattedDate = dateObj.toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
             });
+            dateMap[formattedDate] = celebration.name;
+
+            // Check if this Misa Lainnya date is in the selected month/year
+            const celebrationMonth = dateObj.getMonth();
+            const celebrationYear = dateObj.getFullYear();
+
+            if (
+              celebrationMonth === selectedMonth &&
+              celebrationYear === selectedYear
+            ) {
+              // Collect all assigned lingkungan from this celebration
+              if (
+                celebration.assignments &&
+                celebration.assignments.length > 0
+              ) {
+                celebration.assignments.forEach((assignment) => {
+                  assignment.assignedLingkungan.forEach((ling) => {
+                    assignedLingkunganSet.add(ling.name);
+                  });
+                });
+              }
+            }
           }
-        }
+        });
       }
       setMisaLainnyaDates(dateMap);
       setMisaLainnyaAssignedLingkungan(assignedLingkunganSet);

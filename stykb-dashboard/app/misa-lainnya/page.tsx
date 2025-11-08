@@ -120,39 +120,57 @@ export default function MisaLainnyaPage() {
     }
   };
 
-  const generateAssignments = (schedule: CelebrationSchedule) => {
+  const generateAllAssignments = (
+    celebrationsToUse?: CelebrationWithAssignments[]
+  ) => {
+    // Use provided celebrations or fall back to state
+    const celebrations = celebrationsToUse || savedCelebrations;
+
+    // Track which lingkungan have been assigned across all celebrations
     const usedLingkungan = new Set<string>();
-    const assignments: MassAssignment[] = [];
+    const allCelebrations: CelebrationWithAssignments[] = [];
 
-    schedule.churches.forEach((church) => {
-      church.masses.forEach((mass) => {
-        if (mass.time) {
-          const minTatib = parseInt(mass.minTatib) || 0;
-          const assignedLingkungan = assignLingkunganToMass(
-            church.church,
-            minTatib,
-            usedLingkungan
-          );
+    celebrations.forEach((celebration) => {
+      const assignments: MassAssignment[] = [];
 
-          assignedLingkungan.forEach((ling) => usedLingkungan.add(ling.name));
+      celebration.churches.forEach((church) => {
+        church.masses.forEach((mass) => {
+          if (mass.time) {
+            const minTatib = parseInt(mass.minTatib) || 0;
+            const assignedLingkungan = assignLingkunganToMass(
+              church.church,
+              minTatib,
+              usedLingkungan
+            );
 
-          const totalTatib = assignedLingkungan.reduce(
-            (sum, ling) => sum + ling.tatib,
-            0
-          );
+            // Mark these lingkungan as used
+            assignedLingkungan.forEach((ling) => usedLingkungan.add(ling.name));
 
-          assignments.push({
-            church: church.church,
-            time: mass.time,
-            minTatib,
-            assignedLingkungan,
-            totalTatib,
-          });
-        }
+            const totalTatib = assignedLingkungan.reduce(
+              (sum, ling) => sum + ling.tatib,
+              0
+            );
+
+            assignments.push({
+              church: church.church,
+              time: mass.time,
+              minTatib,
+              assignedLingkungan,
+              totalTatib,
+            });
+          }
+        });
+      });
+
+      allCelebrations.push({
+        name: celebration.name,
+        date: celebration.date,
+        churches: celebration.churches,
+        assignments,
       });
     });
 
-    return assignments;
+    return allCelebrations;
   };
 
   const assignLingkunganToMass = (
@@ -162,32 +180,38 @@ export default function MisaLainnyaPage() {
   ): AssignedLingkungan[] => {
     if (!minTatib || minTatib === 0) return [];
 
+    // Filter available lingkungan for this church that haven't been used yet
+    const availableLingkungan = lingkunganData.filter((ling) => {
+      // Skip if already used
+      if (usedLingkungan.has(ling.namaLingkungan)) return false;
+
+      // Check if lingkungan is available for this church (any day)
+      const churchAvailability = ling.availability[church];
+      if (!churchAvailability) return false;
+
+      // Check if available on any day
+      return Object.values(churchAvailability).some(
+        (dayTimes) => dayTimes && dayTimes.length > 0
+      );
+    });
+
+    // Sort by jumlah tatib descending to use larger groups first
+    const sortedLingkungan = [...availableLingkungan].sort(
+      (a, b) => parseInt(b.jumlahTatib) - parseInt(a.jumlahTatib)
+    );
+
     const assigned: AssignedLingkungan[] = [];
     let currentTotal = 0;
 
-    const sortedLingkungan = [...lingkunganData].sort((a, b) => {
-      return parseInt(b.jumlahTatib) - parseInt(a.jumlahTatib);
-    });
-
+    // Assign lingkungan until we meet the minimum tatib requirement
     for (const ling of sortedLingkungan) {
-      if (usedLingkungan.has(ling.namaLingkungan)) continue;
-
-      const availability = ling.availability[church];
-      if (!availability) continue;
-
-      const hasAvailability =
-        (availability.Sabtu && availability.Sabtu.length > 0) ||
-        (availability.Minggu && availability.Minggu.length > 0);
-
-      if (!hasAvailability) continue;
+      if (currentTotal >= minTatib) break;
 
       assigned.push({
         name: ling.namaLingkungan,
         tatib: parseInt(ling.jumlahTatib),
       });
       currentTotal += parseInt(ling.jumlahTatib);
-
-      if (currentTotal >= minTatib) break;
     }
 
     return assigned;
@@ -307,16 +331,20 @@ export default function MisaLainnyaPage() {
       return;
     }
 
-    const assignments = generateAssignments(newCelebration);
-    const newCelebrationWithAssignments: CelebrationWithAssignments = {
-      ...newCelebration,
-      assignments,
-    };
-
-    const updatedCelebrations = [
+    // Add the new celebration to the list
+    const updatedCelebrationsTemp = [
       ...savedCelebrations,
-      newCelebrationWithAssignments,
+      {
+        name: newCelebration.name,
+        date: newCelebration.date,
+        churches: newCelebration.churches,
+        assignments: [], // Temporary empty assignments
+      },
     ];
+
+    // Regenerate ALL assignments to maintain global uniqueness
+    const updatedCelebrations = generateAllAssignments(updatedCelebrationsTemp);
+
     setSavedCelebrations(updatedCelebrations);
     saveMisaLainnyaData(updatedCelebrations);
 
@@ -461,18 +489,21 @@ export default function MisaLainnyaPage() {
       return;
     }
 
-    const assignments = generateAssignments(editingCelebration);
-    const updatedCelebrationWithAssignments: CelebrationWithAssignments = {
-      ...editingCelebration,
-      assignments,
-    };
-
-    const updatedCelebrations = savedCelebrations.map((cel, idx) => {
+    // Update the celebration in the list
+    const updatedCelebrationsTemp = savedCelebrations.map((cel, idx) => {
       if (idx === editingIndex) {
-        return updatedCelebrationWithAssignments;
+        return {
+          name: editingCelebration.name,
+          date: editingCelebration.date,
+          churches: editingCelebration.churches,
+          assignments: [], // Temporary empty assignments
+        };
       }
       return cel;
     });
+
+    // Regenerate ALL assignments to maintain global uniqueness
+    const updatedCelebrations = generateAllAssignments(updatedCelebrationsTemp);
 
     setSavedCelebrations(updatedCelebrations);
     saveMisaLainnyaData(updatedCelebrations);
