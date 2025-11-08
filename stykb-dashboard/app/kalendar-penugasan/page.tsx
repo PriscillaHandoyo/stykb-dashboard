@@ -30,11 +30,23 @@ interface Assignment {
   needsMore: boolean;
 }
 
+interface PaskahData {
+  schedules: {
+    [key: string]: {
+      date: string;
+      churches: any[];
+    };
+  };
+}
+
 export default function KalendarPenugasanPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [lingkunganData, setLingkunganData] = useState<LingkunganData[]>([]);
+  const [paskahDates, setPaskahDates] = useState<{ [date: string]: string }>(
+    {}
+  );
   const [loading, setLoading] = useState(true);
 
   const months = [
@@ -57,6 +69,7 @@ export default function KalendarPenugasanPage() {
 
   useEffect(() => {
     loadLingkunganData();
+    loadPaskahData();
   }, []);
 
   useEffect(() => {
@@ -75,6 +88,47 @@ export default function KalendarPenugasanPage() {
       console.error("Error loading lingkungan data:", error);
       setLoading(false);
     }
+  };
+
+  const loadPaskahData = async () => {
+    try {
+      const response = await fetch("/api/paskah");
+      const data: PaskahData = await response.json();
+
+      // Map to convert Paskah dates to a lookup object
+      const holyDayNames: { [key: string]: string } = {
+        rabuAbu: "Rabu Abu",
+        mingguPalma: "Minggu Palma",
+        kamisPutih: "Kamis Putih",
+        jumatAgung: "Jumat Agung",
+        sabtuSuci: "Sabtu Suci",
+        mingguPaskah: "Minggu Paskah",
+      };
+
+      const dateMap: { [date: string]: string } = {};
+      if (data.schedules) {
+        Object.keys(data.schedules).forEach((key) => {
+          const schedule = data.schedules[key];
+          if (schedule.date) {
+            // Convert the date to dd/mm/yyyy format to match calendar format
+            const dateObj = new Date(schedule.date);
+            const formattedDate = dateObj.toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
+            dateMap[formattedDate] = holyDayNames[key] || key;
+          }
+        });
+      }
+      setPaskahDates(dateMap);
+    } catch (error) {
+      console.error("Error loading paskah data:", error);
+    }
+  };
+
+  const isPaskahDate = (dateStr: string): string | null => {
+    return paskahDates[dateStr] || null;
   };
 
   // Seeded random number generator for consistent shuffling within a month
@@ -521,120 +575,174 @@ export default function KalendarPenugasanPage() {
                     </tr>
                   ) : (
                     Object.entries(groupedAssignments).map(
-                      ([date, items], dateIndex) => (
-                        <React.Fragment key={`date-${dateIndex}-${date}`}>
-                          {items.map((assignment, index) => (
+                      ([date, items], dateIndex) => {
+                        const paskahHolyDay = isPaskahDate(items[0].date);
+
+                        // If it's a Paskah date, show special row
+                        if (paskahHolyDay) {
+                          return (
                             <tr
-                              key={`${date}-${assignment.church}-${assignment.time}`}
-                              className="hover:bg-gray-50"
+                              key={`date-${dateIndex}-${date}`}
+                              className="bg-yellow-50"
                             >
-                              {index === 0 && (
-                                <>
-                                  <td
-                                    className="border border-gray-200 py-3 px-4 text-sm text-gray-900 font-medium"
-                                    rowSpan={items.length}
-                                  >
-                                    {assignment.date}
-                                  </td>
-                                  <td
-                                    className="border border-gray-200 py-3 px-4 text-sm text-gray-900"
-                                    rowSpan={items.length}
-                                  >
-                                    <span
-                                      className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                        assignment.day === "Minggu"
-                                          ? "bg-blue-100 text-blue-700"
-                                          : "bg-purple-100 text-purple-700"
-                                      }`}
-                                    >
-                                      {assignment.day}
-                                    </span>
-                                  </td>
-                                </>
-                              )}
-                              <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                                {assignment.church}
+                              <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900 font-medium">
+                                {items[0].date}
                               </td>
                               <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                                {assignment.time}
+                                <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                  {items[0].day}
+                                </span>
                               </td>
-                              <td className="border border-gray-200 py-3 px-4 text-sm">
-                                {assignment.assignedLingkungan.length === 0 ? (
-                                  <span className="text-gray-400">
-                                    Belum ada assignment
+                              <td
+                                colSpan={4}
+                                className="border border-gray-200 py-4 px-4 text-center"
+                              >
+                                <div className="flex items-center justify-center gap-2">
+                                  <svg
+                                    className="w-5 h-5 text-yellow-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    PERAYAAN PASKAH - {paskahHolyDay}
                                   </span>
-                                ) : (
-                                  <div className="space-y-1">
-                                    {assignment.assignedLingkungan.map(
-                                      (ling, idx) => (
-                                        <div
-                                          key={idx}
-                                          className="text-gray-900"
-                                        >
-                                          {ling.name}
-                                          <span className="text-xs text-gray-500 ml-2">
-                                            ({ling.tatib} tatib)
-                                          </span>
-                                        </div>
-                                      )
-                                    )}
-                                    <div className="mt-2 pt-1 border-t border-gray-200">
-                                      <span
-                                        className={`text-xs font-medium ${
-                                          assignment.needsMore
-                                            ? "text-red-600"
-                                            : "text-green-600"
-                                        }`}
-                                      >
-                                        Total: {assignment.totalTatib} tatib
-                                        {assignment.needsMore &&
-                                          " (Kurang dari 20)"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="border border-gray-200 py-3 px-4 text-sm">
-                                {assignment.needsMore ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                    Butuh Lebih
-                                  </span>
-                                ) : assignment.assignedLingkungan.length > 0 ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                    Cukup
-                                  </span>
-                                ) : (
-                                  <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                                    Assign
-                                  </button>
-                                )}
+                                  <a
+                                    href="/paskah"
+                                    className="text-sm text-blue-600 hover:text-blue-700 underline"
+                                  >
+                                    (Lihat halaman 'Paskah' untuk jadwal
+                                    penugasan)
+                                  </a>
+                                </div>
                               </td>
                             </tr>
-                          ))}
-                        </React.Fragment>
-                      )
+                          );
+                        }
+
+                        // Normal rendering for non-Paskah dates
+                        return (
+                          <React.Fragment key={`date-${dateIndex}-${date}`}>
+                            {items.map((assignment, index) => (
+                              <tr
+                                key={`${date}-${assignment.church}-${assignment.time}`}
+                                className="hover:bg-gray-50"
+                              >
+                                {index === 0 && (
+                                  <>
+                                    <td
+                                      className="border border-gray-200 py-3 px-4 text-sm text-gray-900 font-medium"
+                                      rowSpan={items.length}
+                                    >
+                                      {assignment.date}
+                                    </td>
+                                    <td
+                                      className="border border-gray-200 py-3 px-4 text-sm text-gray-900"
+                                      rowSpan={items.length}
+                                    >
+                                      <span
+                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                          assignment.day === "Minggu"
+                                            ? "bg-blue-100 text-blue-700"
+                                            : "bg-purple-100 text-purple-700"
+                                        }`}
+                                      >
+                                        {assignment.day}
+                                      </span>
+                                    </td>
+                                  </>
+                                )}
+                                <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                                  {assignment.church}
+                                </td>
+                                <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                                  {assignment.time}
+                                </td>
+                                <td className="border border-gray-200 py-3 px-4 text-sm">
+                                  {assignment.assignedLingkungan.length ===
+                                  0 ? (
+                                    <span className="text-gray-400">
+                                      Belum ada assignment
+                                    </span>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      {assignment.assignedLingkungan.map(
+                                        (ling, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="text-gray-900"
+                                          >
+                                            {ling.name}
+                                            <span className="text-xs text-gray-500 ml-2">
+                                              ({ling.tatib} tatib)
+                                            </span>
+                                          </div>
+                                        )
+                                      )}
+                                      <div className="mt-2 pt-1 border-t border-gray-200">
+                                        <span
+                                          className={`text-xs font-medium ${
+                                            assignment.needsMore
+                                              ? "text-red-600"
+                                              : "text-green-600"
+                                          }`}
+                                        >
+                                          Total: {assignment.totalTatib} tatib
+                                          {assignment.needsMore &&
+                                            " (Kurang dari 20)"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="border border-gray-200 py-3 px-4 text-sm">
+                                  {assignment.needsMore ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Butuh Lebih
+                                    </span>
+                                  ) : assignment.assignedLingkungan.length >
+                                    0 ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Cukup
+                                    </span>
+                                  ) : (
+                                    <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                      Assign
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      }
                     )
                   )}
                 </tbody>

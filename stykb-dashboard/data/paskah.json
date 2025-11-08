@@ -8,7 +8,7 @@
           "masses": [
             {
               "time": "12:45",
-              "minTatib": "29"
+              "minTatib": "30"
             }
           ]
         },
@@ -180,7 +180,7 @@
       {
         "church": "St. Yakobus",
         "time": "12:45",
-        "minTatib": 29,
+        "minTatib": 30,
         "assignedLingkungan": [
           {
             "name": "Gabriel 2",

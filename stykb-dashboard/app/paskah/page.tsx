@@ -317,8 +317,30 @@ export default function PaskahPage() {
     setPaskahSchedule((prev) => {
       const updated = { ...prev };
       const day = updated[holyDay as keyof typeof updated];
-      day.churches[churchIndex].masses[massIndex].minTatib = minTatib;
-      return updated;
+
+      // Create a deep copy to avoid mutation
+      const updatedChurches = day.churches.map((church, cIdx) => {
+        if (cIdx === churchIndex) {
+          return {
+            ...church,
+            masses: church.masses.map((mass, mIdx) => {
+              if (mIdx === massIndex) {
+                return { ...mass, minTatib };
+              }
+              return mass;
+            }),
+          };
+        }
+        return church;
+      });
+
+      return {
+        ...updated,
+        [holyDay]: {
+          ...day,
+          churches: updatedChurches,
+        },
+      };
     });
   };
 
