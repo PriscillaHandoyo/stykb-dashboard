@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface MassTime {
   time: string;
+  minTatib: string;
 }
 
 interface ChurchSchedule {
@@ -18,49 +19,50 @@ interface HolyDaySchedule {
 }
 
 export default function PaskahPage() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [savedSchedule, setSavedSchedule] = useState<any>(null);
+  const [savedSchedules, setSavedSchedules] = useState<{
+    [key: string]: HolyDaySchedule;
+  }>({});
   const [paskahSchedule, setPaskahSchedule] = useState({
     mingguPalma: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
     rabuAbu: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
     kamisPutih: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
     jumatAgung: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
     sabtuSuci: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
     mingguPaskah: {
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "" }] },
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     },
   });
@@ -89,11 +91,25 @@ export default function PaskahPage() {
     });
   };
 
+  const handleMinTatibChange = (
+    holyDay: string,
+    churchIndex: number,
+    massIndex: number,
+    minTatib: string
+  ) => {
+    setPaskahSchedule((prev) => {
+      const updated = { ...prev };
+      const day = updated[holyDay as keyof typeof updated];
+      day.churches[churchIndex].masses[massIndex].minTatib = minTatib;
+      return updated;
+    });
+  };
+
   const addMassTime = (holyDay: string, churchIndex: number) => {
     setPaskahSchedule((prev) => {
       const updated = { ...prev };
       const day = updated[holyDay as keyof typeof updated];
-      day.churches[churchIndex].masses.push({ time: "" });
+      day.churches[churchIndex].masses.push({ time: "", minTatib: "" });
       return updated;
     });
   };
@@ -113,22 +129,29 @@ export default function PaskahPage() {
     });
   };
 
+  const handleSaveHolyDay = (holyDayKey: string) => {
+    const holyDay = paskahSchedule[holyDayKey as keyof typeof paskahSchedule];
+    setSavedSchedules((prev) => ({
+      ...prev,
+      [holyDayKey]: holyDay,
+    }));
+    alert(`Jadwal ${getHolyDayName(holyDayKey)} berhasil disimpan!`);
+  };
+
+  const getHolyDayName = (key: string) => {
+    const names: { [key: string]: string } = {
+      rabuAbu: "Rabu Abu",
+      mingguPalma: "Minggu Palma",
+      kamisPutih: "Kamis Putih",
+      jumatAgung: "Jumat Agung",
+      sabtuSuci: "Sabtu Suci",
+      mingguPaskah: "Minggu Paskah",
+    };
+    return names[key] || key;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedSchedule(paskahSchedule);
-    setIsEditing(false);
-    alert("Jadwal Paskah berhasil disimpan!");
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    if (savedSchedule) {
-      setPaskahSchedule(savedSchedule);
-      setIsEditing(false);
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -190,30 +213,52 @@ export default function PaskahPage() {
 
             {/* Mass Times */}
             {church.masses.map((mass, massIndex) => (
-              <div key={massIndex} className="flex items-center gap-2 mb-2">
-                <label className="text-sm font-medium text-gray-600 w-20">
+              <div key={massIndex} className="flex gap-3 items-start">
+                <label className="text-sm font-medium text-gray-700 mt-3 min-w-[80px]">
                   Misa {massIndex + 1}:
                 </label>
-                <input
-                  type="time"
-                  value={mass.time}
-                  onChange={(e) =>
-                    handleTimeChange(
-                      holyDayKey,
-                      churchIndex,
-                      massIndex,
-                      e.target.value
-                    )
-                  }
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
-                  required
-                />
+                <div className="flex-1 flex flex-col gap-2">
+                  <input
+                    type="time"
+                    value={mass.time}
+                    onChange={(e) =>
+                      handleTimeChange(
+                        holyDayKey,
+                        churchIndex,
+                        massIndex,
+                        e.target.value
+                      )
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                    required
+                  />
+                  <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-gray-700">
+                      Min Tatib:
+                    </label>
+                    <input
+                      type="number"
+                      value={mass.minTatib}
+                      onChange={(e) =>
+                        handleMinTatibChange(
+                          holyDayKey,
+                          churchIndex,
+                          massIndex,
+                          e.target.value
+                        )
+                      }
+                      min="0"
+                      placeholder="0"
+                      className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                    />
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() =>
                     removeMassTime(holyDayKey, churchIndex, massIndex)
                   }
-                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors mt-3"
                   disabled={church.masses.length === 1}
                 >
                   Hapus
@@ -231,6 +276,17 @@ export default function PaskahPage() {
             </button>
           </div>
         ))}
+
+        {/* Save Button for this Holy Day */}
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => handleSaveHolyDay(holyDayKey)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Simpan {title}
+          </button>
+        </div>
       </div>
     );
   };
@@ -380,8 +436,12 @@ export default function PaskahPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {!savedSchedule || isEditing ? (
-            /* Form View */
+          {/* Form View */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              Jadwal Perayaan Paskah
+            </h2>
+
             <form onSubmit={handleSubmit}>
               {/* Rabu Abu */}
               {renderHolyDaySection(
@@ -424,208 +484,283 @@ export default function PaskahPage() {
                 "mingguPaskah",
                 paskahSchedule.mingguPaskah
               )}
-
-              {/* Submit Button */}
-              <div className="flex justify-end gap-4">
-                {savedSchedule && (
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Batal
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Simpan Jadwal
-                </button>
-              </div>
             </form>
-          ) : (
-            /* Display View */
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Jadwal Perayaan Paskah
+
+            {/* Saved Schedules Display */}
+            {Object.keys(savedSchedules).length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                  Jadwal yang Telah Disimpan
                 </h2>
-                <button
-                  onClick={handleEdit}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Edit Jadwal
-                </button>
+
+                {/* Rabu Abu */}
+                {savedSchedules.rabuAbu?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Rabu Abu ({formatDate(savedSchedules.rabuAbu.date)})
+                    </h3>
+                    {savedSchedules.rabuAbu.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Minggu Palma */}
+                {savedSchedules.mingguPalma?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Minggu Palma (
+                      {formatDate(savedSchedules.mingguPalma.date)})
+                    </h3>
+                    {savedSchedules.mingguPalma.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Kamis Putih */}
+                {savedSchedules.kamisPutih?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Kamis Putih ({formatDate(savedSchedules.kamisPutih.date)})
+                    </h3>
+                    {savedSchedules.kamisPutih.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Jumat Agung */}
+                {savedSchedules.jumatAgung?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Jumat Agung ({formatDate(savedSchedules.jumatAgung.date)})
+                    </h3>
+                    {savedSchedules.jumatAgung.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Sabtu Suci */}
+                {savedSchedules.sabtuSuci?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Sabtu Suci ({formatDate(savedSchedules.sabtuSuci.date)})
+                    </h3>
+                    {savedSchedules.sabtuSuci.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Minggu Paskah */}
+                {savedSchedules.mingguPaskah?.date && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Minggu Paskah (
+                      {formatDate(savedSchedules.mingguPaskah.date)})
+                    </h3>
+                    {savedSchedules.mingguPaskah.churches.map(
+                      (church: ChurchSchedule, idx: number) => {
+                        const massesWithTimes = church.masses.filter(
+                          (m) => m.time
+                        );
+                        if (massesWithTimes.length > 0) {
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
+                            >
+                              <p className="text-sm text-gray-700 mb-2">
+                                <span className="font-medium">
+                                  {church.church}:
+                                </span>
+                              </p>
+                              {massesWithTimes.map((mass, massIdx) => (
+                                <p
+                                  key={massIdx}
+                                  className="text-sm text-gray-700 text-right"
+                                >
+                                  {formatTime(mass.time)}
+                                  {mass.minTatib && (
+                                    <span className="ml-2 text-gray-600">
+                                      (Min {mass.minTatib} tatib)
+                                    </span>
+                                  )}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    )}
+                  </div>
+                )}
               </div>
-
-              {/* Minggu Palma */}
-              {savedSchedule.mingguPalma.date && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Minggu Palma ({formatDate(savedSchedule.mingguPalma.date)})
-                  </h3>
-                  {savedSchedule.mingguPalma.churches.map(
-                    (church: ChurchSchedule, idx: number) => {
-                      const times = church.masses
-                        .filter((m) => m.time)
-                        .map((m) => formatTime(m.time))
-                        .join(" & ");
-                      if (times) {
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
-                          >
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">
-                                {church.church}:
-                              </span>
-                            </p>
-                            <p className="text-right text-gray-700">{times}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  )}
-                </div>
-              )}
-
-              {/* Kamis Putih */}
-              {savedSchedule.kamisPutih.date && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Kamis Putih ({formatDate(savedSchedule.kamisPutih.date)})
-                  </h3>
-                  {savedSchedule.kamisPutih.churches.map(
-                    (church: ChurchSchedule, idx: number) => {
-                      const times = church.masses
-                        .filter((m) => m.time)
-                        .map((m) => formatTime(m.time))
-                        .join(" & ");
-                      if (times) {
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
-                          >
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">
-                                {church.church}:
-                              </span>
-                            </p>
-                            <p className="text-right text-gray-700">{times}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  )}
-                </div>
-              )}
-
-              {/* Jumat Agung */}
-              {savedSchedule.jumatAgung.date && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Jumat Agung ({formatDate(savedSchedule.jumatAgung.date)})
-                  </h3>
-                  {savedSchedule.jumatAgung.churches.map(
-                    (church: ChurchSchedule, idx: number) => {
-                      const times = church.masses
-                        .filter((m) => m.time)
-                        .map((m) => formatTime(m.time))
-                        .join(" & ");
-                      if (times) {
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
-                          >
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">
-                                {church.church}:
-                              </span>
-                            </p>
-                            <p className="text-right text-gray-700">{times}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  )}
-                </div>
-              )}
-
-              {/* Sabtu Suci */}
-              {savedSchedule.sabtuSuci.date && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Sabtu Suci ({formatDate(savedSchedule.sabtuSuci.date)})
-                  </h3>
-                  {savedSchedule.sabtuSuci.churches.map(
-                    (church: ChurchSchedule, idx: number) => {
-                      const times = church.masses
-                        .filter((m) => m.time)
-                        .map((m) => formatTime(m.time))
-                        .join(" & ");
-                      if (times) {
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
-                          >
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">
-                                {church.church}:
-                              </span>
-                            </p>
-                            <p className="text-right text-gray-700">{times}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  )}
-                </div>
-              )}
-
-              {/* Minggu Paskah */}
-              {savedSchedule.mingguPaskah.date && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Minggu Paskah ({formatDate(savedSchedule.mingguPaskah.date)}
-                    )
-                  </h3>
-                  {savedSchedule.mingguPaskah.churches.map(
-                    (church: ChurchSchedule, idx: number) => {
-                      const times = church.masses
-                        .filter((m) => m.time)
-                        .map((m) => formatTime(m.time))
-                        .join(" & ");
-                      if (times) {
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2"
-                          >
-                            <p className="text-sm text-gray-700">
-                              <span className="font-medium">
-                                {church.church}:
-                              </span>
-                            </p>
-                            <p className="text-right text-gray-700">{times}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
