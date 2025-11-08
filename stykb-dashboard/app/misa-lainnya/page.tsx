@@ -57,6 +57,7 @@ export default function MisaLainnyaPage() {
     CelebrationWithAssignments[]
   >([]);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [lingkunganData, setLingkunganData] = useState<LingkunganData[]>([]);
   const [newCelebration, setNewCelebration] = useState<CelebrationSchedule>({
     name: "",
@@ -66,6 +67,15 @@ export default function MisaLainnyaPage() {
       { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
     ],
   });
+  const [editingCelebration, setEditingCelebration] =
+    useState<CelebrationSchedule>({
+      name: "",
+      date: "",
+      churches: [
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+      ],
+    });
 
   useEffect(() => {
     loadLingkunganData();
@@ -326,18 +336,171 @@ export default function MisaLainnyaPage() {
 
   const handleRegenerateCelebration = (index: number) => {
     const celebration = savedCelebrations[index];
-    const newAssignments = generateAssignments(celebration);
+    // Set editing state
+    setEditingIndex(index);
+    setEditingCelebration({
+      name: celebration.name,
+      date: celebration.date,
+      churches: celebration.churches,
+    });
+  };
+
+  const handleEditingCelebrationNameChange = (name: string) => {
+    setEditingCelebration((prev) => ({ ...prev, name }));
+  };
+
+  const handleEditingDateChange = (date: string) => {
+    setEditingCelebration((prev) => ({ ...prev, date }));
+  };
+
+  const handleEditingMassTimeChange = (
+    churchIndex: number,
+    massIndex: number,
+    time: string
+  ) => {
+    setEditingCelebration((prev) => {
+      const updated = { ...prev };
+      const updatedChurches = updated.churches.map((church, cIdx) => {
+        if (cIdx === churchIndex) {
+          return {
+            ...church,
+            masses: church.masses.map((mass, mIdx) => {
+              if (mIdx === massIndex) {
+                return { ...mass, time };
+              }
+              return mass;
+            }),
+          };
+        }
+        return church;
+      });
+
+      return { ...updated, churches: updatedChurches };
+    });
+  };
+
+  const handleEditingMinTatibChange = (
+    churchIndex: number,
+    massIndex: number,
+    minTatib: string
+  ) => {
+    setEditingCelebration((prev) => {
+      const updated = { ...prev };
+      const updatedChurches = updated.churches.map((church, cIdx) => {
+        if (cIdx === churchIndex) {
+          return {
+            ...church,
+            masses: church.masses.map((mass, mIdx) => {
+              if (mIdx === massIndex) {
+                return { ...mass, minTatib };
+              }
+              return mass;
+            }),
+          };
+        }
+        return church;
+      });
+
+      return { ...updated, churches: updatedChurches };
+    });
+  };
+
+  const addEditingMassTime = (churchIndex: number) => {
+    setEditingCelebration((prev) => {
+      const updated = { ...prev };
+      const updatedChurches = updated.churches.map((church, idx) => {
+        if (idx === churchIndex) {
+          return {
+            ...church,
+            masses: [...church.masses, { time: "", minTatib: "" }],
+          };
+        }
+        return church;
+      });
+      return { ...updated, churches: updatedChurches };
+    });
+  };
+
+  const removeEditingMassTime = (churchIndex: number, massIndex: number) => {
+    setEditingCelebration((prev) => {
+      const updated = { ...prev };
+      const updatedChurches = updated.churches.map((church, cIdx) => {
+        if (cIdx === churchIndex) {
+          if (church.masses.length > 1) {
+            return {
+              ...church,
+              masses: church.masses.filter((_, mIdx) => mIdx !== massIndex),
+            };
+          }
+        }
+        return church;
+      });
+      return { ...updated, churches: updatedChurches };
+    });
+  };
+
+  const handleSaveEditedCelebration = () => {
+    if (editingIndex === null) return;
+
+    if (!editingCelebration.name.trim()) {
+      alert("Mohon isi nama perayaan");
+      return;
+    }
+
+    if (!editingCelebration.date) {
+      alert("Mohon isi tanggal perayaan");
+      return;
+    }
+
+    const hasAnyMass = editingCelebration.churches.some((church) =>
+      church.masses.some((mass) => mass.time)
+    );
+
+    if (!hasAnyMass) {
+      alert("Mohon isi setidaknya satu waktu misa");
+      return;
+    }
+
+    const assignments = generateAssignments(editingCelebration);
+    const updatedCelebrationWithAssignments: CelebrationWithAssignments = {
+      ...editingCelebration,
+      assignments,
+    };
 
     const updatedCelebrations = savedCelebrations.map((cel, idx) => {
-      if (idx === index) {
-        return { ...cel, assignments: newAssignments };
+      if (idx === editingIndex) {
+        return updatedCelebrationWithAssignments;
       }
       return cel;
     });
 
     setSavedCelebrations(updatedCelebrations);
     saveMisaLainnyaData(updatedCelebrations);
-    alert("Penugasan berhasil digenerate ulang!");
+
+    // Reset editing state
+    setEditingIndex(null);
+    setEditingCelebration({
+      name: "",
+      date: "",
+      churches: [
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+      ],
+    });
+
+    alert(`Jadwal ${editingCelebration.name} berhasil diupdate!`);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditingCelebration({
+      name: "",
+      date: "",
+      churches: [
+        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
+        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+      ],
+    });
   };
 
   const handleDeleteCelebration = (index: number) => {
@@ -504,125 +667,268 @@ export default function MisaLainnyaPage() {
               key={celebrationIndex}
               className="mb-8 bg-white rounded-lg shadow-md overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      {celebration.name}
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Tanggal:{" "}
-                      {celebration.date &&
-                        new Date(celebration.date).toLocaleDateString("id-ID", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        handleRegenerateCelebration(celebrationIndex)
-                      }
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Regenerate Misa
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCelebration(celebrationIndex)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus perayaan"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {editingIndex === celebrationIndex ? (
+                // Edit Form
+                <div className="p-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                    Edit {celebration.name}
+                  </h2>
 
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
-                        Gereja
-                      </th>
-                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
-                        Waktu
-                      </th>
-                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
-                        Min Tatib
-                      </th>
-                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
-                        Lingkungan
-                      </th>
-                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
-                        Total Tatib
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {celebration.assignments.map((assignment, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                          {assignment.church}
-                        </td>
-                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                          {assignment.time}
-                        </td>
-                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
-                          {assignment.minTatib}
-                        </td>
-                        <td className="border border-gray-200 py-3 px-4 text-sm">
-                          {assignment.assignedLingkungan.length === 0 ? (
-                            <span className="text-gray-400">
-                              Tidak ada lingkungan tersedia
-                            </span>
-                          ) : (
-                            <div className="space-y-1">
-                              {assignment.assignedLingkungan.map(
-                                (ling, idx) => (
-                                  <div key={idx} className="text-gray-900">
-                                    {ling.name}
-                                    <span className="text-xs text-gray-500 ml-2">
-                                      ({ling.tatib} tatib)
-                                    </span>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="border border-gray-200 py-3 px-4 text-sm">
-                          <span
-                            className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                              assignment.totalTatib >= assignment.minTatib
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
+                  <form onSubmit={handleSubmit}>
+                    {/* Celebration Name */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Nama Perayaan
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCelebration.name}
+                        onChange={(e) =>
+                          handleEditingCelebrationNameChange(e.target.value)
+                        }
+                        placeholder="Contoh: Pesta Santo Petrus dan Paulus"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                        required
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Tanggal
+                      </label>
+                      <input
+                        type="date"
+                        value={editingCelebration.date}
+                        onChange={(e) =>
+                          handleEditingDateChange(e.target.value)
+                        }
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                        required
+                      />
+                    </div>
+
+                    {/* Churches and Masses */}
+                    {editingCelebration.churches.map((church, churchIndex) => (
+                      <div
+                        key={churchIndex}
+                        className="mb-6 p-4 bg-gray-50 rounded-lg"
+                      >
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                          {church.church}
+                        </h3>
+                        {church.masses.map((mass, massIndex) => (
+                          <div
+                            key={massIndex}
+                            className="flex gap-3 items-start"
                           >
-                            {assignment.totalTatib} tatib
-                            {assignment.totalTatib < assignment.minTatib &&
-                              " ⚠️"}
-                          </span>
-                        </td>
-                      </tr>
+                            <label className="text-sm font-medium text-gray-700 mt-3 min-w-[80px]">
+                              Misa {massIndex + 1}:
+                            </label>
+                            <div className="flex-1 flex flex-col gap-2">
+                              <input
+                                type="time"
+                                value={mass.time}
+                                onChange={(e) =>
+                                  handleEditingMassTimeChange(
+                                    churchIndex,
+                                    massIndex,
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                                required
+                              />
+                              <div className="flex gap-2 items-center">
+                                <label className="text-sm font-medium text-gray-700">
+                                  Min Tatib:
+                                </label>
+                                <input
+                                  type="number"
+                                  value={mass.minTatib}
+                                  onChange={(e) =>
+                                    handleEditingMinTatibChange(
+                                      churchIndex,
+                                      massIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                  min="0"
+                                  placeholder="0"
+                                  className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeEditingMassTime(churchIndex, massIndex)
+                              }
+                              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors mt-3"
+                              disabled={church.masses.length === 1}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addEditingMassTime(churchIndex)}
+                          className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                        >
+                          + Tambah Waktu Misa
+                        </button>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+
+                    {/* Save/Cancel Buttons */}
+                    <div className="mt-6 flex gap-3 justify-end">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveEditedCelebration}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      >
+                        Simpan Perubahan
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                // Display Table
+                <>
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-800">
+                          {celebration.name}
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Tanggal:{" "}
+                          {celebration.date &&
+                            new Date(celebration.date).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )}
+                        </p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() =>
+                            handleRegenerateCelebration(celebrationIndex)
+                          }
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Regenerate Misa
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteCelebration(celebrationIndex)
+                          }
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus perayaan"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                            Gereja
+                          </th>
+                          <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                            Waktu
+                          </th>
+                          <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                            Min Tatib
+                          </th>
+                          <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                            Lingkungan
+                          </th>
+                          <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                            Total Tatib
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {celebration.assignments.map((assignment, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                              {assignment.church}
+                            </td>
+                            <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                              {assignment.time}
+                            </td>
+                            <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                              {assignment.minTatib}
+                            </td>
+                            <td className="border border-gray-200 py-3 px-4 text-sm">
+                              {assignment.assignedLingkungan.length === 0 ? (
+                                <span className="text-gray-400">
+                                  Tidak ada lingkungan tersedia
+                                </span>
+                              ) : (
+                                <div className="space-y-1">
+                                  {assignment.assignedLingkungan.map(
+                                    (ling, idx) => (
+                                      <div key={idx} className="text-gray-900">
+                                        {ling.name}
+                                        <span className="text-xs text-gray-500 ml-2">
+                                          ({ling.tatib} tatib)
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-gray-200 py-3 px-4 text-sm">
+                              <span
+                                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                  assignment.totalTatib >= assignment.minTatib
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {assignment.totalTatib} tatib
+                                {assignment.totalTatib < assignment.minTatib &&
+                                  " ⚠️"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           ))}
 

@@ -13,7 +13,7 @@
             },
             {
               "time": "10:01",
-              "minTatib": "27"
+              "minTatib": "30"
             }
           ]
         },
@@ -47,7 +47,7 @@
         {
           "church": "St. Yakobus",
           "time": "10:01",
-          "minTatib": 27,
+          "minTatib": 30,
           "assignedLingkungan": [
             {
               "name": "Yosef 2",
@@ -67,6 +67,72 @@
           "assignedLingkungan": [
             {
               "name": "Bartolomeus 3",
+              "tatib": 25
+            }
+          ],
+          "totalTatib": 25
+        }
+      ]
+    },
+    {
+      "name": "Misa Tahun Baru",
+      "date": "2026-01-01",
+      "churches": [
+        {
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "10:41",
+              "minTatib": "25"
+            },
+            {
+              "time": "10:41",
+              "minTatib": "23"
+            }
+          ]
+        },
+        {
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "10:41",
+              "minTatib": "20"
+            }
+          ]
+        }
+      ],
+      "assignments": [
+        {
+          "church": "St. Yakobus",
+          "time": "10:41",
+          "minTatib": 25,
+          "assignedLingkungan": [
+            {
+              "name": "Gabriel 2",
+              "tatib": 26
+            }
+          ],
+          "totalTatib": 26
+        },
+        {
+          "church": "St. Yakobus",
+          "time": "10:41",
+          "minTatib": 23,
+          "assignedLingkungan": [
+            {
+              "name": "Felix 2",
+              "tatib": 25
+            }
+          ],
+          "totalTatib": 25
+        },
+        {
+          "church": "Pegangsaan 2",
+          "time": "10:41",
+          "minTatib": 20,
+          "assignedLingkungan": [
+            {
+              "name": "Yosef 2",
               "tatib": 25
             }
           ],
