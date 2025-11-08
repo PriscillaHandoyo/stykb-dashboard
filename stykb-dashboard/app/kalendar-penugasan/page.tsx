@@ -37,6 +37,18 @@ interface PaskahData {
       churches: any[];
     };
   };
+  assignments: {
+    [key: string]: Array<{
+      church: string;
+      time: string;
+      minTatib: number;
+      assignedLingkungan: Array<{
+        name: string;
+        tatib: number;
+      }>;
+      totalTatib: number;
+    }>;
+  };
 }
 
 export default function KalendarPenugasanPage() {
@@ -47,6 +59,9 @@ export default function KalendarPenugasanPage() {
   const [paskahDates, setPaskahDates] = useState<{ [date: string]: string }>(
     {}
   );
+  const [paskahAssignedLingkungan, setPaskahAssignedLingkungan] = useState<
+    Set<string>
+  >(new Set());
   const [loading, setLoading] = useState(true);
 
   const months = [
@@ -69,14 +84,17 @@ export default function KalendarPenugasanPage() {
 
   useEffect(() => {
     loadLingkunganData();
-    loadPaskahData();
   }, []);
+
+  useEffect(() => {
+    loadPaskahData();
+  }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     if (lingkunganData.length > 0) {
       generateAssignments();
     }
-  }, [selectedYear, selectedMonth, lingkunganData]);
+  }, [selectedYear, selectedMonth, lingkunganData, paskahAssignedLingkungan]);
 
   const loadLingkunganData = async () => {
     try {
@@ -106,6 +124,8 @@ export default function KalendarPenugasanPage() {
       };
 
       const dateMap: { [date: string]: string } = {};
+      const assignedLingkunganSet = new Set<string>();
+
       if (data.schedules) {
         Object.keys(data.schedules).forEach((key) => {
           const schedule = data.schedules[key];
@@ -118,10 +138,26 @@ export default function KalendarPenugasanPage() {
               year: "numeric",
             });
             dateMap[formattedDate] = holyDayNames[key] || key;
+
+            // Check if this Paskah date is in the selected month/year
+            const paskahMonth = dateObj.getMonth();
+            const paskahYear = dateObj.getFullYear();
+
+            if (paskahMonth === selectedMonth && paskahYear === selectedYear) {
+              // Collect all assigned lingkungan from this Paskah celebration
+              if (data.assignments && data.assignments[key]) {
+                data.assignments[key].forEach((assignment) => {
+                  assignment.assignedLingkungan.forEach((ling) => {
+                    assignedLingkunganSet.add(ling.name);
+                  });
+                });
+              }
+            }
           }
         });
       }
       setPaskahDates(dateMap);
+      setPaskahAssignedLingkungan(assignedLingkunganSet);
     } catch (error) {
       console.error("Error loading paskah data:", error);
     }
@@ -160,17 +196,32 @@ export default function KalendarPenugasanPage() {
     // Create a unique seed for this month to ensure consistent but different shuffling per month
     const monthSeed = selectedYear * 12 + selectedMonth;
 
-    // Shuffle all lingkungan for this month
-    const shuffledLingkungan = shuffleArray(lingkunganData, monthSeed);
+    // Filter out lingkungan that are already assigned in Paskah celebrations this month
+    const availableLingkungan = lingkunganData.filter(
+      (ling) => !paskahAssignedLingkungan.has(ling.namaLingkungan)
+    );
+
+    // Shuffle available lingkungan for this month
+    const shuffledLingkungan = shuffleArray(availableLingkungan, monthSeed);
 
     // Create a pool of lingkungan that haven't been assigned yet this month
+    // This pool will be depleted as we assign lingkungan
     const unassignedPool = [...shuffledLingkungan];
+
+    // Track assignments per week to avoid assigning same lingkungan in consecutive weeks
+    const weeklyAssignments: { [weekNum: number]: Set<string> } = {};
+
+    // Helper function to get week number of the month
+    const getWeekOfMonth = (dayNum: number): number => {
+      return Math.ceil(dayNum / 7);
+    };
 
     // Helper function to get next available lingkungan for a slot
     const getNextLingkunganForSlot = (
       church: string,
       day: string,
-      time: string
+      time: string,
+      currentDay: number
     ): AssignedLingkungan[] => {
       const MIN_TATIB = 20;
       const assigned: AssignedLingkungan[] = [];
@@ -181,7 +232,14 @@ export default function KalendarPenugasanPage() {
         ? "St. Yakobus"
         : "Pegangsaan 2";
 
-      // Try to assign lingkungan from the unassigned pool
+      const currentWeek = getWeekOfMonth(currentDay);
+      const previousWeek = currentWeek - 1;
+
+      // Get lingkungan assigned in previous week
+      const previousWeekAssignments =
+        weeklyAssignments[previousWeek] || new Set<string>();
+
+      // Try to assign from unassigned pool first, prioritizing those not in previous week
       for (let i = unassignedPool.length - 1; i >= 0; i--) {
         const lingkungan = unassignedPool[i];
 
@@ -193,6 +251,14 @@ export default function KalendarPenugasanPage() {
           day === "Minggu" ? availability.Minggu : availability.Sabtu;
         if (!daySchedule || !daySchedule.includes(time)) continue;
 
+        // Skip if this lingkungan was assigned in previous week (unless pool is running low)
+        const isFromPreviousWeek = previousWeekAssignments.has(
+          lingkungan.namaLingkungan
+        );
+        if (isFromPreviousWeek && unassignedPool.length > 5) {
+          continue; // Skip and try to find someone from an earlier week
+        }
+
         // This lingkungan is available, assign it
         const tatib = parseInt(lingkungan.jumlahTatib) || 0;
         assigned.push({
@@ -203,6 +269,12 @@ export default function KalendarPenugasanPage() {
 
         // Remove from unassigned pool
         unassignedPool.splice(i, 1);
+
+        // Track this assignment for the current week
+        if (!weeklyAssignments[currentWeek]) {
+          weeklyAssignments[currentWeek] = new Set<string>();
+        }
+        weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
 
         // If we've reached minimum tatib, stop assigning for this slot
         if (totalTatib >= MIN_TATIB) {
@@ -232,7 +304,8 @@ export default function KalendarPenugasanPage() {
           const assigned0800 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "08:00"
+            "08:00",
+            day
           );
           const total0800 = assigned0800.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -248,7 +321,8 @@ export default function KalendarPenugasanPage() {
           const assigned1100 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "11:00"
+            "11:00",
+            day
           );
           const total1100 = assigned1100.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -264,7 +338,8 @@ export default function KalendarPenugasanPage() {
           const assigned1700 = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "17:00"
+            "17:00",
+            day
           );
           const total1700 = assigned1700.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -281,7 +356,8 @@ export default function KalendarPenugasanPage() {
           const assignedSat = getNextLingkunganForSlot(
             "St. Yakobus",
             dayName,
-            "17:00"
+            "17:00",
+            day
           );
           const totalSat = assignedSat.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -300,7 +376,8 @@ export default function KalendarPenugasanPage() {
           const assignedP0730 = getNextLingkunganForSlot(
             "Pegangsaan 2",
             dayName,
-            "07:30"
+            "07:30",
+            day
           );
           const totalP0730 = assignedP0730.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -316,7 +393,8 @@ export default function KalendarPenugasanPage() {
           const assignedP1030 = getNextLingkunganForSlot(
             "Pegangsaan 2",
             dayName,
-            "10:30"
+            "10:30",
+            day
           );
           const totalP1030 = assignedP1030.reduce((sum, l) => sum + l.tatib, 0);
           assignments.push({
@@ -666,9 +744,28 @@ export default function KalendarPenugasanPage() {
                                 <td className="border border-gray-200 py-3 px-4 text-sm">
                                   {assignment.assignedLingkungan.length ===
                                   0 ? (
-                                    <span className="text-gray-400">
-                                      Belum ada assignment
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <svg
+                                        className="w-4 h-4 text-orange-500"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      <span className="text-orange-600 font-medium text-sm">
+                                        Lingkungan Kurang
+                                      </span>
+                                      {paskahAssignedLingkungan.size > 0 && (
+                                        <span className="text-xs text-gray-500">
+                                          (Beberapa lingkungan sudah bertugas di
+                                          Paskah)
+                                        </span>
+                                      )}
+                                    </div>
                                   ) : (
                                     <div className="space-y-1">
                                       {assignment.assignedLingkungan.map(
