@@ -324,7 +324,16 @@ export default function MisaLainnyaPage() {
   };
 
   const handleRegenerate = () => {
-    setEditing(true);
+    if (!savedSchedule) return;
+
+    // Regenerate assignments with fresh data
+    const newAssignments = generateAssignments(savedSchedule);
+    setMassAssignments(newAssignments);
+
+    // Save to JSON file
+    saveMisaLainnyaData(savedSchedule, newAssignments);
+
+    alert("Penugasan berhasil digenerate ulang!");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -443,6 +452,30 @@ export default function MisaLainnyaPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {!editing && savedSchedule && (
+                <button
+                  onClick={() => {
+                    setCelebrationSchedule({
+                      name: "",
+                      date: "",
+                      churches: [
+                        {
+                          church: "St. Yakobus",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                        {
+                          church: "Pegangsaan 2",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                      ],
+                    });
+                    setEditing(true);
+                  }}
+                  className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                >
+                  + Tambah Perayaan
+                </button>
+              )}
               <Link
                 href="/kalendar-penugasan"
                 className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-300"
@@ -602,12 +635,20 @@ export default function MisaLainnyaPage() {
                         )}
                     </p>
                   </div>
-                  <button
-                    onClick={handleRegenerate}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Regenerate Misa
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleRegenerate}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Regenerate Misa
+                    </button>
+                  </div>
                 </div>
               </div>
 

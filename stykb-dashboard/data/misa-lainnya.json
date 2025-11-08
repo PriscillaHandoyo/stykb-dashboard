@@ -1,4 +1,76 @@
 {
-  "schedule": null,
-  "assignments": []
+  "schedule": {
+    "name": "Misa Natal ",
+    "date": "2025-12-25",
+    "churches": [
+      {
+        "church": "St. Yakobus",
+        "masses": [
+          {
+            "time": "13:52",
+            "minTatib": "30"
+          },
+          {
+            "time": "13:52",
+            "minTatib": "28"
+          }
+        ]
+      },
+      {
+        "church": "Pegangsaan 2",
+        "masses": [
+          {
+            "time": "13:52",
+            "minTatib": "25"
+          }
+        ]
+      }
+    ]
+  },
+  "assignments": [
+    {
+      "church": "St. Yakobus",
+      "time": "13:52",
+      "minTatib": 30,
+      "assignedLingkungan": [
+        {
+          "name": "Gabriel 2",
+          "tatib": 26
+        },
+        {
+          "name": "Felix 2",
+          "tatib": 25
+        }
+      ],
+      "totalTatib": 51
+    },
+    {
+      "church": "St. Yakobus",
+      "time": "13:52",
+      "minTatib": 28,
+      "assignedLingkungan": [
+        {
+          "name": "Yosef 2",
+          "tatib": 25
+        },
+        {
+          "name": "Matius 2",
+          "tatib": 25
+        }
+      ],
+      "totalTatib": 50
+    },
+    {
+      "church": "Pegangsaan 2",
+      "time": "13:52",
+      "minTatib": 25,
+      "assignedLingkungan": [
+        {
+          "name": "Bartolomeus 3",
+          "tatib": 25
+        }
+      ],
+      "totalTatib": 25
+    }
+  ]
 }

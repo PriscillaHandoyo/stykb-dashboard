@@ -51,6 +51,24 @@ interface PaskahData {
   };
 }
 
+interface MisaLainnyaData {
+  schedule: {
+    name: string;
+    date: string;
+    churches: any[];
+  };
+  assignments: Array<{
+    church: string;
+    time: string;
+    minTatib: number;
+    assignedLingkungan: Array<{
+      name: string;
+      tatib: number;
+    }>;
+    totalTatib: number;
+  }>;
+}
+
 export default function KalendarPenugasanPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -62,6 +80,11 @@ export default function KalendarPenugasanPage() {
   const [paskahAssignedLingkungan, setPaskahAssignedLingkungan] = useState<
     Set<string>
   >(new Set());
+  const [misaLainnyaDates, setMisaLainnyaDates] = useState<{
+    [date: string]: string;
+  }>({});
+  const [misaLainnyaAssignedLingkungan, setMisaLainnyaAssignedLingkungan] =
+    useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const months = [
@@ -88,13 +111,20 @@ export default function KalendarPenugasanPage() {
 
   useEffect(() => {
     loadPaskahData();
+    loadMisaLainnyaData();
   }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     if (lingkunganData.length > 0) {
       generateAssignments();
     }
-  }, [selectedYear, selectedMonth, lingkunganData, paskahAssignedLingkungan]);
+  }, [
+    selectedYear,
+    selectedMonth,
+    lingkunganData,
+    paskahAssignedLingkungan,
+    misaLainnyaAssignedLingkungan,
+  ]);
 
   const loadLingkunganData = async () => {
     try {
@@ -163,8 +193,54 @@ export default function KalendarPenugasanPage() {
     }
   };
 
+  const loadMisaLainnyaData = async () => {
+    try {
+      const response = await fetch("/api/misa-lainnya");
+      const data: MisaLainnyaData = await response.json();
+
+      const dateMap: { [date: string]: string } = {};
+      const assignedLingkunganSet = new Set<string>();
+
+      if (data.schedule && data.schedule.date) {
+        const dateObj = new Date(data.schedule.date);
+        const formattedDate = dateObj.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+        dateMap[formattedDate] = data.schedule.name;
+
+        // Check if this Misa Lainnya date is in the selected month/year
+        const celebrationMonth = dateObj.getMonth();
+        const celebrationYear = dateObj.getFullYear();
+
+        if (
+          celebrationMonth === selectedMonth &&
+          celebrationYear === selectedYear
+        ) {
+          // Collect all assigned lingkungan from this celebration
+          if (data.assignments && data.assignments.length > 0) {
+            data.assignments.forEach((assignment) => {
+              assignment.assignedLingkungan.forEach((ling) => {
+                assignedLingkunganSet.add(ling.name);
+              });
+            });
+          }
+        }
+      }
+      setMisaLainnyaDates(dateMap);
+      setMisaLainnyaAssignedLingkungan(assignedLingkunganSet);
+    } catch (error) {
+      console.error("Error loading misa lainnya data:", error);
+    }
+  };
+
   const isPaskahDate = (dateStr: string): string | null => {
     return paskahDates[dateStr] || null;
+  };
+
+  const isMisaLainnyaDate = (dateStr: string): string | null => {
+    return misaLainnyaDates[dateStr] || null;
   };
 
   // Seeded random number generator for consistent shuffling within a month
@@ -196,9 +272,11 @@ export default function KalendarPenugasanPage() {
     // Create a unique seed for this month to ensure consistent but different shuffling per month
     const monthSeed = selectedYear * 12 + selectedMonth;
 
-    // Filter out lingkungan that are already assigned in Paskah celebrations this month
+    // Filter out lingkungan that are already assigned in Paskah or Misa Lainnya celebrations this month
     const availableLingkungan = lingkunganData.filter(
-      (ling) => !paskahAssignedLingkungan.has(ling.namaLingkungan)
+      (ling) =>
+        !paskahAssignedLingkungan.has(ling.namaLingkungan) &&
+        !misaLainnyaAssignedLingkungan.has(ling.namaLingkungan)
     );
 
     // Shuffle available lingkungan for this month
@@ -719,6 +797,9 @@ export default function KalendarPenugasanPage() {
                     Object.entries(groupedAssignments).map(
                       ([date, items], dateIndex) => {
                         const paskahHolyDay = isPaskahDate(items[0].date);
+                        const misaLainnyaName = isMisaLainnyaDate(
+                          items[0].date
+                        );
 
                         // If it's a Paskah date, show special row
                         if (paskahHolyDay) {
@@ -759,6 +840,53 @@ export default function KalendarPenugasanPage() {
                                     className="text-sm text-blue-600 hover:text-blue-700 underline"
                                   >
                                     (Lihat halaman 'Paskah' untuk jadwal
+                                    penugasan)
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        // If it's a Misa Lainnya date, show special row
+                        if (misaLainnyaName) {
+                          return (
+                            <tr
+                              key={`date-${dateIndex}-${date}`}
+                              className="bg-green-50"
+                            >
+                              <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900 font-medium">
+                                {items[0].date}
+                              </td>
+                              <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                                <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">
+                                  {items[0].day}
+                                </span>
+                              </td>
+                              <td
+                                colSpan={4}
+                                className="border border-gray-200 py-4 px-4 text-center"
+                              >
+                                <div className="flex items-center justify-center gap-2">
+                                  <svg
+                                    className="w-5 h-5 text-green-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {misaLainnyaName}
+                                  </span>
+                                  <a
+                                    href="/misa-lainnya"
+                                    className="text-sm text-blue-600 hover:text-blue-700 underline"
+                                  >
+                                    (Lihat halaman 'Misa Lainnya' untuk jadwal
                                     penugasan)
                                   </a>
                                 </div>
