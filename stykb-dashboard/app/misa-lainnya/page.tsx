@@ -754,6 +754,7 @@ export default function MisaLainnyaPage() {
                                     )
                                   }
                                   min="0"
+                                  step="1"
                                   placeholder="0"
                                   className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                                 />
@@ -1014,6 +1015,7 @@ export default function MisaLainnyaPage() {
                                 )
                               }
                               min="0"
+                              step="1"
                               placeholder="0"
                               className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                             />
