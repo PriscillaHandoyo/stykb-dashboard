@@ -370,7 +370,7 @@ export default function KalendarPenugasanPage() {
             Paskah
           </a>
           <a
-            href="/misa-lainnya"
+            href="#"
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
