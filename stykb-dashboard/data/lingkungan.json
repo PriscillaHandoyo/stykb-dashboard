@@ -1661,5 +1661,80 @@
         ]
       }
     }
+  },
+  {
+    "id": 68,
+    "namaLingkungan": "Yakobus 1",
+    "namaKetua": "Jayden",
+    "nomorTelepon": "147924824242",
+    "jumlahTatib": "10",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "11:00",
+          "08:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 69,
+    "namaLingkungan": "Yakobus 2",
+    "namaKetua": "Anna",
+    "nomorTelepon": "234879239234",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
+  },
+  {
+    "id": 70,
+    "namaLingkungan": "Yakobus 3",
+    "namaKetua": "Sab",
+    "nomorTelepon": "26131234247",
+    "jumlahTatib": "21",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
   }
 ]

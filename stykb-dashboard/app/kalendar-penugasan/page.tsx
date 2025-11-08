@@ -211,6 +211,9 @@ export default function KalendarPenugasanPage() {
     // Track assignments per week to avoid assigning same lingkungan in consecutive weeks
     const weeklyAssignments: { [weekNum: number]: Set<string> } = {};
 
+    // Track assignments per day to avoid assigning same lingkungan multiple times on same date
+    const dailyAssignments: { [dayNum: number]: Set<string> } = {};
+
     // Helper function to get week number of the month
     const getWeekOfMonth = (dayNum: number): number => {
       return Math.ceil(dayNum / 7);
@@ -235,13 +238,20 @@ export default function KalendarPenugasanPage() {
       const currentWeek = getWeekOfMonth(currentDay);
       const previousWeek = currentWeek - 1;
 
-      // Get lingkungan assigned in previous week
+      // Get lingkungan assigned in previous week and on current day
       const previousWeekAssignments =
         weeklyAssignments[previousWeek] || new Set<string>();
+      const todayAssignments =
+        dailyAssignments[currentDay] || new Set<string>();
 
       // Try to assign from unassigned pool first, prioritizing those not in previous week
       for (let i = unassignedPool.length - 1; i >= 0; i--) {
         const lingkungan = unassignedPool[i];
+
+        // Skip if already assigned today
+        if (todayAssignments.has(lingkungan.namaLingkungan)) {
+          continue;
+        }
 
         // Check if this lingkungan is available for this slot
         const availability = lingkungan.availability[normalizedChurch];
@@ -270,15 +280,69 @@ export default function KalendarPenugasanPage() {
         // Remove from unassigned pool
         unassignedPool.splice(i, 1);
 
-        // Track this assignment for the current week
+        // Track this assignment for the current week and day
         if (!weeklyAssignments[currentWeek]) {
           weeklyAssignments[currentWeek] = new Set<string>();
         }
         weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
 
+        if (!dailyAssignments[currentDay]) {
+          dailyAssignments[currentDay] = new Set<string>();
+        }
+        dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
+
         // If we've reached minimum tatib, stop assigning for this slot
         if (totalTatib >= MIN_TATIB) {
           break;
+        }
+      }
+
+      // If pool is empty and we still need more tatib, reuse lingkungan
+      // BUT only those NOT assigned to Paskah, NOT assigned in previous week, and NOT assigned today
+      if (
+        totalTatib < MIN_TATIB &&
+        unassignedPool.length === 0 &&
+        paskahAssignedLingkungan.size > 0
+      ) {
+        // Get all lingkungan not assigned to Paskah, not in previous week, and not assigned today
+        const reusableLingkungan = availableLingkungan.filter(
+          (ling) =>
+            !previousWeekAssignments.has(ling.namaLingkungan) &&
+            !todayAssignments.has(ling.namaLingkungan)
+        );
+
+        for (const lingkungan of reusableLingkungan) {
+          // Check if this lingkungan is available for this slot
+          const availability = lingkungan.availability[normalizedChurch];
+          if (!availability) continue;
+
+          const daySchedule =
+            day === "Minggu" ? availability.Minggu : availability.Sabtu;
+          if (!daySchedule || !daySchedule.includes(time)) continue;
+
+          // This lingkungan is available, assign it
+          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+          assigned.push({
+            name: lingkungan.namaLingkungan,
+            tatib: tatib,
+          });
+          totalTatib += tatib;
+
+          // Track this assignment for the current week and day
+          if (!weeklyAssignments[currentWeek]) {
+            weeklyAssignments[currentWeek] = new Set<string>();
+          }
+          weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
+
+          if (!dailyAssignments[currentDay]) {
+            dailyAssignments[currentDay] = new Set<string>();
+          }
+          dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
+
+          // If we've reached minimum tatib, stop assigning for this slot
+          if (totalTatib >= MIN_TATIB) {
+            break;
+          }
         }
       }
 
