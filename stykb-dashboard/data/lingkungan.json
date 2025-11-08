@@ -1061,5 +1061,30 @@
         ]
       }
     }
+  },
+  {
+    "id": 44,
+    "namaLingkungan": "Brigitta 1",
+    "namaKetua": "Adella ",
+    "nomorTelepon": "1841904134189",
+    "jumlahTatib": "20",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
   }
 ]
