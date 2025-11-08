@@ -324,16 +324,12 @@ export default function MisaLainnyaPage() {
   };
 
   const handleRegenerate = () => {
-    if (!savedSchedule) return;
-
-    // Regenerate assignments with fresh data
-    const newAssignments = generateAssignments(savedSchedule);
-    setMassAssignments(newAssignments);
-
-    // Save to JSON file
-    saveMisaLainnyaData(savedSchedule, newAssignments);
-
-    alert("Penugasan berhasil digenerate ulang!");
+    // Load the saved schedule back into the form for editing
+    if (savedSchedule) {
+      setCelebrationSchedule(savedSchedule);
+    }
+    // Switch to editing mode to allow modifications
+    setEditing(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
