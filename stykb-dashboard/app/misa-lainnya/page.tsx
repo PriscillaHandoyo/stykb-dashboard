@@ -443,51 +443,50 @@ export default function MisaLainnyaPage() {
       {/* Main Content */}
       <main className="ml-56">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Misa Lainnya</h1>
-              <p className="text-sm text-gray-500">
-                Kelola perayaan khusus dan penugasan tatib
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              {!editing && savedSchedule && (
-                <button
-                  onClick={() => {
-                    setCelebrationSchedule({
-                      name: "",
-                      date: "",
-                      churches: [
-                        {
-                          church: "St. Yakobus",
-                          masses: [{ time: "", minTatib: "" }],
-                        },
-                        {
-                          church: "Pegangsaan 2",
-                          masses: [{ time: "", minTatib: "" }],
-                        },
-                      ],
-                    });
-                    setEditing(true);
-                  }}
-                  className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-                >
-                  + Tambah Perayaan
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">
+                  Misa Lainnya
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Kelola perayaan khusus dan penugasan tatib
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <button className="text-gray-400 hover:text-gray-600">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
+                  </svg>
                 </button>
-              )}
-              <Link
-                href="/kalendar-penugasan"
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-300"
-              >
-                Kembali ke Kalendar
-              </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">
+                    Welcome back, Admin!
+                  </span>
+                  <Link
+                    href="/login"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Logout
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <div className="p-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {editing ? (
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -635,51 +634,52 @@ export default function MisaLainnyaPage() {
                         )}
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={handleRegenerate}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Regenerate Misa
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleRegenerate}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Regenerate Misa
+                  </button>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
                         Gereja
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
                         Waktu
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                        Min Tatib
+                      </th>
+                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
                         Lingkungan
+                      </th>
+                      <th className="border border-gray-200 py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                        Total Tatib
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody>
                     {massAssignments.map((assignment, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
                           {assignment.church}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
                           {assignment.time}
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
+                          {assignment.minTatib}
+                        </td>
+                        <td className="border border-gray-200 py-3 px-4 text-sm">
                           {assignment.assignedLingkungan.length === 0 ? (
                             <span className="text-gray-400">
-                              Tidak ada assignment
+                              Tidak ada lingkungan tersedia
                             </span>
                           ) : (
                             <div className="space-y-1">
@@ -693,27 +693,52 @@ export default function MisaLainnyaPage() {
                                   </div>
                                 )
                               )}
-                              <div className="mt-2 pt-1 border-t border-gray-200">
-                                <span
-                                  className={`text-xs font-medium ${
-                                    assignment.totalTatib < assignment.minTatib
-                                      ? "text-red-600"
-                                      : "text-green-600"
-                                  }`}
-                                >
-                                  Total: {assignment.totalTatib} tatib
-                                  {assignment.totalTatib <
-                                    assignment.minTatib &&
-                                    ` (Kurang dari ${assignment.minTatib})`}
-                                </span>
-                              </div>
                             </div>
                           )}
+                        </td>
+                        <td className="border border-gray-200 py-3 px-4 text-sm">
+                          <span
+                            className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                              assignment.totalTatib >= assignment.minTatib
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {assignment.totalTatib} tatib
+                            {assignment.totalTatib < assignment.minTatib &&
+                              " ⚠️"}
+                          </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Tambah Perayaan Button */}
+              <div className="mt-6 mb-8 flex justify-center">
+                <button
+                  onClick={() => {
+                    setCelebrationSchedule({
+                      name: "",
+                      date: "",
+                      churches: [
+                        {
+                          church: "St. Yakobus",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                        {
+                          church: "Pegangsaan 2",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                      ],
+                    });
+                    setEditing(true);
+                  }}
+                  className="px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+                >
+                  + Tambah Perayaan
+                </button>
               </div>
             </div>
           )}
