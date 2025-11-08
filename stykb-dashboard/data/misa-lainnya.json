@@ -1,76 +1,78 @@
 {
-  "schedule": {
-    "name": "Misa Natal",
-    "date": "2025-11-25",
-    "churches": [
-      {
-        "church": "St. Yakobus",
-        "masses": [
-          {
-            "time": "10:01",
-            "minTatib": "30"
-          },
-          {
-            "time": "10:01",
-            "minTatib": "30"
-          }
-        ]
-      },
-      {
-        "church": "Pegangsaan 2",
-        "masses": [
-          {
-            "time": "10:01",
-            "minTatib": "20"
-          }
-        ]
-      }
-    ]
-  },
-  "assignments": [
+  "celebrations": [
     {
-      "church": "St. Yakobus",
-      "time": "10:01",
-      "minTatib": 30,
-      "assignedLingkungan": [
+      "name": "Misa Natal",
+      "date": "2025-11-25",
+      "churches": [
         {
-          "name": "Gabriel 2",
-          "tatib": 26
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "10:01",
+              "minTatib": "30"
+            },
+            {
+              "time": "10:01",
+              "minTatib": "27"
+            }
+          ]
         },
         {
-          "name": "Felix 2",
-          "tatib": 25
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "10:01",
+              "minTatib": "20"
+            }
+          ]
         }
       ],
-      "totalTatib": 51
-    },
-    {
-      "church": "St. Yakobus",
-      "time": "10:01",
-      "minTatib": 30,
-      "assignedLingkungan": [
+      "assignments": [
         {
-          "name": "Yosef 2",
-          "tatib": 25
+          "church": "St. Yakobus",
+          "time": "10:01",
+          "minTatib": 30,
+          "assignedLingkungan": [
+            {
+              "name": "Gabriel 2",
+              "tatib": 26
+            },
+            {
+              "name": "Felix 2",
+              "tatib": 25
+            }
+          ],
+          "totalTatib": 51
         },
         {
-          "name": "Matius 2",
-          "tatib": 25
-        }
-      ],
-      "totalTatib": 50
-    },
-    {
-      "church": "Pegangsaan 2",
-      "time": "10:01",
-      "minTatib": 20,
-      "assignedLingkungan": [
+          "church": "St. Yakobus",
+          "time": "10:01",
+          "minTatib": 27,
+          "assignedLingkungan": [
+            {
+              "name": "Yosef 2",
+              "tatib": 25
+            },
+            {
+              "name": "Matius 2",
+              "tatib": 25
+            }
+          ],
+          "totalTatib": 50
+        },
         {
-          "name": "Bartolomeus 3",
-          "tatib": 25
+          "church": "Pegangsaan 2",
+          "time": "10:01",
+          "minTatib": 20,
+          "assignedLingkungan": [
+            {
+              "name": "Bartolomeus 3",
+              "tatib": 25
+            }
+          ],
+          "totalTatib": 25
         }
-      ],
-      "totalTatib": 25
+      ]
     }
   ]
 }

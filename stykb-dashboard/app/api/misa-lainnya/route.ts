@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error reading misa lainnya data:", error);
-    return NextResponse.json({ schedule: null, assignments: [] });
+    return NextResponse.json({ celebrations: [] });
   }
 }
 

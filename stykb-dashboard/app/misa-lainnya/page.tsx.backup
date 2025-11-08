@@ -45,17 +45,12 @@ interface MassAssignment {
   totalTatib: number;
 }
 
-interface CelebrationWithAssignments {
-  name: string;
-  date: string;
-  churches: ChurchSchedule[];
+interface CelebrationWithAssignments extends CelebrationSchedule {
   assignments: MassAssignment[];
 }
 
 export default function MisaLainnyaPage() {
-  const [savedCelebrations, setSavedCelebrations] = useState<
-    CelebrationWithAssignments[]
-  >([]);
+  const [savedCelebrations, setSavedCelebrations] = useState<CelebrationWithAssignments[]>([]);
   const [showNewForm, setShowNewForm] = useState(false);
   const [lingkunganData, setLingkunganData] = useState<LingkunganData[]>([]);
   const [newCelebration, setNewCelebration] = useState<CelebrationSchedule>({
@@ -86,8 +81,13 @@ export default function MisaLainnyaPage() {
     try {
       const response = await fetch("/api/misa-lainnya");
       const data = await response.json();
-      if (data.celebrations && data.celebrations.length > 0) {
-        setSavedCelebrations(data.celebrations);
+      if (data.schedule && data.schedule.name) {
+        setSavedSchedule(data.schedule);
+        setCelebrationSchedule(data.schedule);
+        setEditing(false);
+      }
+      if (data.assignments && data.assignments.length > 0) {
+        setMassAssignments(data.assignments);
       }
     } catch (error) {
       console.error("Error loading misa lainnya data:", error);
@@ -95,7 +95,8 @@ export default function MisaLainnyaPage() {
   };
 
   const saveMisaLainnyaData = async (
-    celebrations: CelebrationWithAssignments[]
+    schedule: CelebrationSchedule,
+    assignments: MassAssignment[]
   ) => {
     try {
       await fetch("/api/misa-lainnya", {
@@ -103,7 +104,7 @@ export default function MisaLainnyaPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ celebrations }),
+        body: JSON.stringify({ schedule, assignments }),
       });
     } catch (error) {
       console.error("Error saving misa lainnya data:", error);
@@ -124,6 +125,7 @@ export default function MisaLainnyaPage() {
             usedLingkungan
           );
 
+          // Mark these lingkungan as used
           assignedLingkungan.forEach((ling) => usedLingkungan.add(ling.name));
 
           const totalTatib = assignedLingkungan.reduce(
@@ -155,28 +157,34 @@ export default function MisaLainnyaPage() {
     const assigned: AssignedLingkungan[] = [];
     let currentTotal = 0;
 
+    // Sort lingkungan by tatib count (descending) for greedy assignment
     const sortedLingkungan = [...lingkunganData].sort((a, b) => {
       return parseInt(b.jumlahTatib) - parseInt(a.jumlahTatib);
     });
 
     for (const ling of sortedLingkungan) {
+      // Skip if already used
       if (usedLingkungan.has(ling.namaLingkungan)) continue;
 
+      // Check if available for this church (any day)
       const availability = ling.availability[church];
       if (!availability) continue;
 
+      // Check if available for any day (Sabtu or Minggu)
       const hasAvailability =
         (availability.Sabtu && availability.Sabtu.length > 0) ||
         (availability.Minggu && availability.Minggu.length > 0);
 
       if (!hasAvailability) continue;
 
+      // Add this lingkungan
       assigned.push({
         name: ling.namaLingkungan,
         tatib: parseInt(ling.jumlahTatib),
       });
       currentTotal += parseInt(ling.jumlahTatib);
 
+      // Stop if we've met the minimum
       if (currentTotal >= minTatib) break;
     }
 
@@ -184,11 +192,11 @@ export default function MisaLainnyaPage() {
   };
 
   const handleCelebrationNameChange = (name: string) => {
-    setNewCelebration((prev) => ({ ...prev, name }));
+    setCelebrationSchedule((prev) => ({ ...prev, name }));
   };
 
   const handleDateChange = (date: string) => {
-    setNewCelebration((prev) => ({ ...prev, date }));
+    setCelebrationSchedule((prev) => ({ ...prev, date }));
   };
 
   const handleMassTimeChange = (
@@ -196,7 +204,7 @@ export default function MisaLainnyaPage() {
     massIndex: number,
     time: string
   ) => {
-    setNewCelebration((prev) => {
+    setCelebrationSchedule((prev) => {
       const updated = { ...prev };
       const updatedChurches = updated.churches.map((church, cIdx) => {
         if (cIdx === churchIndex) {
@@ -222,7 +230,7 @@ export default function MisaLainnyaPage() {
     massIndex: number,
     minTatib: string
   ) => {
-    setNewCelebration((prev) => {
+    setCelebrationSchedule((prev) => {
       const updated = { ...prev };
       const updatedChurches = updated.churches.map((church, cIdx) => {
         if (cIdx === churchIndex) {
@@ -244,7 +252,7 @@ export default function MisaLainnyaPage() {
   };
 
   const addMassTime = (churchIndex: number) => {
-    setNewCelebration((prev) => {
+    setCelebrationSchedule((prev) => {
       const updated = { ...prev };
       const updatedChurches = updated.churches.map((church, idx) => {
         if (idx === churchIndex) {
@@ -260,7 +268,7 @@ export default function MisaLainnyaPage() {
   };
 
   const removeMassTime = (churchIndex: number, massIndex: number) => {
-    setNewCelebration((prev) => {
+    setCelebrationSchedule((prev) => {
       const updated = { ...prev };
       const updatedChurches = updated.churches.map((church, cIdx) => {
         if (cIdx === churchIndex) {
@@ -277,18 +285,21 @@ export default function MisaLainnyaPage() {
     });
   };
 
-  const handleSaveNewCelebration = () => {
-    if (!newCelebration.name.trim()) {
+  const handleSave = () => {
+    // Validate celebration name
+    if (!celebrationSchedule.name.trim()) {
       alert("Mohon isi nama perayaan");
       return;
     }
 
-    if (!newCelebration.date) {
+    // Validate date
+    if (!celebrationSchedule.date) {
       alert("Mohon isi tanggal perayaan");
       return;
     }
 
-    const hasAnyMass = newCelebration.churches.some((church) =>
+    // Validate that at least one mass has a time
+    const hasAnyMass = celebrationSchedule.churches.some((church) =>
       church.masses.some((mass) => mass.time)
     );
 
@@ -297,57 +308,29 @@ export default function MisaLainnyaPage() {
       return;
     }
 
-    const assignments = generateAssignments(newCelebration);
-    const newCelebrationWithAssignments: CelebrationWithAssignments = {
-      ...newCelebration,
-      assignments,
-    };
+    // Save the schedule
+    setSavedSchedule(celebrationSchedule);
 
-    const updatedCelebrations = [
-      ...savedCelebrations,
-      newCelebrationWithAssignments,
-    ];
-    setSavedCelebrations(updatedCelebrations);
-    saveMisaLainnyaData(updatedCelebrations);
+    // Generate assignments
+    const assignments = generateAssignments(celebrationSchedule);
+    setMassAssignments(assignments);
 
-    // Reset form
-    setNewCelebration({
-      name: "",
-      date: "",
-      churches: [
-        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
-      ],
-    });
-    setShowNewForm(false);
+    // Save to JSON file
+    saveMisaLainnyaData(celebrationSchedule, assignments);
 
-    alert(`Jadwal ${newCelebration.name} berhasil disimpan!`);
+    // Set editing to false to show the table
+    setEditing(false);
+
+    alert(`Jadwal ${celebrationSchedule.name} berhasil disimpan!`);
   };
 
-  const handleRegenerateCelebration = (index: number) => {
-    const celebration = savedCelebrations[index];
-    const newAssignments = generateAssignments(celebration);
-
-    const updatedCelebrations = savedCelebrations.map((cel, idx) => {
-      if (idx === index) {
-        return { ...cel, assignments: newAssignments };
-      }
-      return cel;
-    });
-
-    setSavedCelebrations(updatedCelebrations);
-    saveMisaLainnyaData(updatedCelebrations);
-    alert("Penugasan berhasil digenerate ulang!");
-  };
-
-  const handleDeleteCelebration = (index: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus perayaan ini?")) {
-      const updatedCelebrations = savedCelebrations.filter(
-        (_, idx) => idx !== index
-      );
-      setSavedCelebrations(updatedCelebrations);
-      saveMisaLainnyaData(updatedCelebrations);
+  const handleRegenerate = () => {
+    // Load the saved schedule back into the form for editing
+    if (savedSchedule) {
+      setCelebrationSchedule(savedSchedule);
     }
+    // Switch to editing mode to allow modifications
+    setEditing(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -358,6 +341,7 @@ export default function MisaLainnyaPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-56 bg-white border-r border-gray-200">
+        {/* Logo */}
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <svg
@@ -371,6 +355,7 @@ export default function MisaLainnyaPage() {
           <h2 className="text-xl font-bold text-gray-900">Parish Hub</h2>
         </div>
 
+        {/* Navigation */}
         <nav className="px-3 space-y-1">
           <a
             href="/dashboard"
@@ -438,6 +423,7 @@ export default function MisaLainnyaPage() {
           </a>
         </nav>
 
+        {/* User Profile */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white font-semibold">
@@ -498,57 +484,159 @@ export default function MisaLainnyaPage() {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Display all saved celebrations */}
-          {savedCelebrations.map((celebration, celebrationIndex) => (
-            <div
-              key={celebrationIndex}
-              className="mb-8 bg-white rounded-lg shadow-md overflow-hidden"
-            >
+          {editing ? (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                {savedSchedule ? "Edit Perayaan" : "Tambah Perayaan Baru"}
+              </h2>
+
+              <form onSubmit={handleSubmit}>
+                {/* Celebration Name */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nama Perayaan
+                  </label>
+                  <input
+                    type="text"
+                    value={celebrationSchedule.name}
+                    onChange={(e) =>
+                      handleCelebrationNameChange(e.target.value)
+                    }
+                    placeholder="Contoh: Pesta Santo Petrus dan Paulus"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                    required
+                  />
+                </div>
+
+                {/* Date */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    value={celebrationSchedule.date}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                    required
+                  />
+                </div>
+
+                {/* Churches and Masses */}
+                {celebrationSchedule.churches.map((church, churchIndex) => (
+                  <div key={churchIndex} className="mb-8">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                      {church.church}
+                    </h3>
+
+                    {church.masses.map((mass, massIndex) => (
+                      <div
+                        key={massIndex}
+                        className="mb-4 p-4 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex gap-4 items-end">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Misa {massIndex + 1}:
+                            </label>
+                            <input
+                              type="time"
+                              value={mass.time}
+                              onChange={(e) =>
+                                handleMassTimeChange(
+                                  churchIndex,
+                                  massIndex,
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                              required
+                            />
+                            <div className="flex gap-2 items-center mt-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Min Tatib:
+                              </label>
+                              <input
+                                type="number"
+                                value={mass.minTatib}
+                                onChange={(e) =>
+                                  handleMinTatibChange(
+                                    churchIndex,
+                                    massIndex,
+                                    e.target.value
+                                  )
+                                }
+                                min="0"
+                                placeholder="0"
+                                className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeMassTime(churchIndex, massIndex)
+                            }
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                            disabled={church.masses.length === 1}
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Mass Time Button */}
+                    <button
+                      type="button"
+                      onClick={() => addMassTime(churchIndex)}
+                      className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                    >
+                      + Tambah Waktu Misa
+                    </button>
+                  </div>
+                ))}
+
+                {/* Save Button */}
+                <div className="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  >
+                    Simpan Jadwal
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            // Assignment Table
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800">
-                      {celebration.name}
+                      {savedSchedule?.name}
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
                       Tanggal:{" "}
-                      {celebration.date &&
-                        new Date(celebration.date).toLocaleDateString("id-ID", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                      {savedSchedule?.date &&
+                        new Date(savedSchedule.date).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          }
+                        )}
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        handleRegenerateCelebration(celebrationIndex)
-                      }
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Regenerate Misa
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCelebration(celebrationIndex)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus perayaan"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleRegenerate}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Regenerate Misa
+                  </button>
                 </div>
               </div>
 
@@ -574,7 +662,7 @@ export default function MisaLainnyaPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {celebration.assignments.map((assignment, index) => (
+                    {massAssignments.map((assignment, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="border border-gray-200 py-3 px-4 text-sm text-gray-900">
                           {assignment.church}
@@ -623,146 +711,32 @@ export default function MisaLainnyaPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          ))}
 
-          {/* New celebration form */}
-          {showNewForm && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                Tambah Perayaan Baru
-              </h2>
-
-              <form onSubmit={handleSubmit}>
-                {/* Celebration Name */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nama Perayaan
-                  </label>
-                  <input
-                    type="text"
-                    value={newCelebration.name}
-                    onChange={(e) =>
-                      handleCelebrationNameChange(e.target.value)
-                    }
-                    placeholder="Contoh: Pesta Santo Petrus dan Paulus"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
-                    required
-                  />
-                </div>
-
-                {/* Date */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tanggal
-                  </label>
-                  <input
-                    type="date"
-                    value={newCelebration.date}
-                    onChange={(e) => handleDateChange(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
-                    required
-                  />
-                </div>
-
-                {/* Churches and Masses */}
-                {newCelebration.churches.map((church, churchIndex) => (
-                  <div
-                    key={churchIndex}
-                    className="mb-6 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      {church.church}
-                    </h3>
-                    {church.masses.map((mass, massIndex) => (
-                      <div key={massIndex} className="flex gap-3 items-start">
-                        <label className="text-sm font-medium text-gray-700 mt-3 min-w-[80px]">
-                          Misa {massIndex + 1}:
-                        </label>
-                        <div className="flex-1 flex flex-col gap-2">
-                          <input
-                            type="time"
-                            value={mass.time}
-                            onChange={(e) =>
-                              handleMassTimeChange(
-                                churchIndex,
-                                massIndex,
-                                e.target.value
-                              )
-                            }
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
-                            required
-                          />
-                          <div className="flex gap-2 items-center">
-                            <label className="text-sm font-medium text-gray-700">
-                              Min Tatib:
-                            </label>
-                            <input
-                              type="number"
-                              value={mass.minTatib}
-                              onChange={(e) =>
-                                handleMinTatibChange(
-                                  churchIndex,
-                                  massIndex,
-                                  e.target.value
-                                )
-                              }
-                              min="0"
-                              placeholder="0"
-                              className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeMassTime(churchIndex, massIndex)}
-                          className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors mt-3"
-                          disabled={church.masses.length === 1}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => addMassTime(churchIndex)}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                    >
-                      + Tambah Waktu Misa
-                    </button>
-                  </div>
-                ))}
-
-                {/* Save Button */}
-                <div className="mt-6 flex gap-3 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowNewForm(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveNewCelebration}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                  >
-                    Simpan Jadwal
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Tambah Perayaan Button */}
-          {!showNewForm && (
-            <div className="mt-6 mb-8 flex justify-center">
-              <button
-                onClick={() => setShowNewForm(true)}
-                className="px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
-              >
-                + Tambah Perayaan
-              </button>
+              {/* Tambah Perayaan Button */}
+              <div className="mt-6 mb-8 flex justify-center">
+                <button
+                  onClick={() => {
+                    setCelebrationSchedule({
+                      name: "",
+                      date: "",
+                      churches: [
+                        {
+                          church: "St. Yakobus",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                        {
+                          church: "Pegangsaan 2",
+                          masses: [{ time: "", minTatib: "" }],
+                        },
+                      ],
+                    });
+                    setEditing(true);
+                  }}
+                  className="px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+                >
+                  + Tambah Perayaan
+                </button>
+              </div>
             </div>
           )}
         </div>
