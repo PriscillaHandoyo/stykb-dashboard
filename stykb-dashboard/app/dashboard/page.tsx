@@ -1,8 +1,171 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 export default function DashboardPage() {
+  const [totalLingkungan, setTotalLingkungan] = useState(0);
+  const [monthlyActivities, setMonthlyActivities] = useState(0);
+  const [totalPaskahActivities, setTotalPaskahActivities] = useState(0);
+  const [totalMisaLainnyaActivities, setTotalMisaLainnyaActivities] =
+    useState(0);
+
+  useEffect(() => {
+    // Fetch lingkungan data
+    fetch("/api/lingkungan")
+      .then((response) => response.json())
+      .then((data) => {
+        setTotalLingkungan(data.length);
+      })
+      .catch((error) => {
+        console.error("Error loading lingkungan data:", error);
+      });
+
+    // Fetch kalendar penugasan data and count current month's assignments
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+
+    // Count assignments from regular weekend masses
+    const saturdays = [];
+    const sundays = [];
+    const year = currentYear;
+    const month = currentMonth;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 6) {
+        saturdays.push(new Date(d));
+      } else if (dayOfWeek === 0) {
+        sundays.push(new Date(d));
+      }
+    }
+
+    // Each Saturday has 2 masses (St. Yakobus 17:00, Pegangsaan 2 19:00)
+    // Each Sunday has 4 masses (St. Yakobus 08:00, 11:00, 17:00, Pegangsaan 2 10:30)
+    const regularMasses = saturdays.length * 2 + sundays.length * 4;
+
+    // Count Paskah assignments for current month
+    fetch("/api/paskah")
+      .then((response) => response.json())
+      .then((data) => {
+        let paskahCount = 0;
+        const holyDays = [
+          "rabuAbu",
+          "mingguPalma",
+          "kamisPutih",
+          "jumatAgung",
+          "sabtuSuci",
+          "mingguPaskah",
+        ];
+
+        holyDays.forEach((holyDay) => {
+          if (data.schedules[holyDay] && data.schedules[holyDay].date) {
+            const holyDayDate = new Date(data.schedules[holyDay].date);
+            if (
+              holyDayDate.getMonth() === currentMonth &&
+              holyDayDate.getFullYear() === currentYear
+            ) {
+              if (data.assignments[holyDay]) {
+                paskahCount += data.assignments[holyDay].length;
+              }
+            }
+          }
+        });
+
+        // Count Misa Lainnya assignments for current month
+        fetch("/api/misa-lainnya")
+          .then((response) => response.json())
+          .then((misaData) => {
+            let misaLainnyaCount = 0;
+            if (misaData.celebrations && misaData.celebrations.length > 0) {
+              misaData.celebrations.forEach((celebration) => {
+                if (celebration.date) {
+                  const celebrationDate = new Date(celebration.date);
+                  if (
+                    celebrationDate.getMonth() === currentMonth &&
+                    celebrationDate.getFullYear() === currentYear
+                  ) {
+                    if (
+                      celebration.assignments &&
+                      celebration.assignments.length > 0
+                    ) {
+                      misaLainnyaCount += celebration.assignments.length;
+                    }
+                  }
+                }
+              });
+            }
+
+            // Total = regular weekend masses + paskah + misa lainnya
+            setMonthlyActivities(
+              regularMasses + paskahCount + misaLainnyaCount
+            );
+          })
+          .catch((error) => {
+            console.error("Error loading misa lainnya data:", error);
+            setMonthlyActivities(regularMasses + paskahCount);
+          });
+      })
+      .catch((error) => {
+        console.error("Error loading paskah data:", error);
+        setMonthlyActivities(regularMasses);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch total Paskah activities
+    fetch("/api/paskah")
+      .then((response) => response.json())
+      .then((data) => {
+        let totalCount = 0;
+
+        // Count all assignments across all holy days
+        if (data.assignments) {
+          Object.keys(data.assignments).forEach((holyDay) => {
+            const assignments = data.assignments[holyDay];
+            if (Array.isArray(assignments)) {
+              totalCount += assignments.length;
+            }
+          });
+        }
+
+        setTotalPaskahActivities(totalCount);
+      })
+      .catch((error) => {
+        console.error("Error loading paskah data:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch total Misa Lainnya activities
+    fetch("/api/misa-lainnya")
+      .then((response) => response.json())
+      .then((data) => {
+        let totalCount = 0;
+
+        // Count all assignments across all celebrations
+        if (data.celebrations && Array.isArray(data.celebrations)) {
+          data.celebrations.forEach((celebration: any) => {
+            if (
+              celebration.assignments &&
+              Array.isArray(celebration.assignments)
+            ) {
+              totalCount += celebration.assignments.length;
+            }
+          });
+        }
+
+        setTotalMisaLainnyaActivities(totalCount);
+      })
+      .catch((error) => {
+        console.error("Error loading misa lainnya data:", error);
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -143,12 +306,14 @@ export default function DashboardPage() {
         <div className="p-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
-            {/* Total Members */}
+            {/* Total Lingkungan */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Members</p>
-                  <h3 className="text-3xl font-bold text-gray-900">1,234</h3>
+                  <p className="text-sm text-gray-600 mb-1">Total Lingkungan</p>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {totalLingkungan}
+                  </h3>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <svg
@@ -162,14 +327,16 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Weekly Attendance */}
+            {/* Monthly Activities */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">
-                    Weekly Attendance
+                    Monthly Activities
                   </p>
-                  <h3 className="text-3xl font-bold text-gray-900">856</h3>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {monthlyActivities}
+                  </h3>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                   <svg
@@ -183,14 +350,16 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Monthly Donations */}
+            {/* Total Paskah Activities */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">
-                    Monthly Donations
+                    Total Paskah Activities
                   </p>
-                  <h3 className="text-3xl font-bold text-gray-900">$12,450</h3>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {totalPaskahActivities}
+                  </h3>
                 </div>
                 <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                   <svg
@@ -198,18 +367,22 @@ export default function DashboardPage() {
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
+                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z" />
                   </svg>
                 </div>
               </div>
             </div>
 
-            {/* Active Events */}
+            {/* Total Misa Lainnya Activities */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Active Events</p>
-                  <h3 className="text-3xl font-bold text-gray-900">8</h3>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Total Misa Lainnya Activities
+                  </p>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {totalMisaLainnyaActivities}
+                  </h3>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                   <svg
@@ -246,10 +419,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 mb-1">
-                          Add New Lingkungan
+                          Form Lingkungan
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Register a new lingkungan
+                          Tambah lingkungan baru
                         </p>
                       </div>
                     </div>
@@ -269,10 +442,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 mb-1">
-                          Schedule Event
+                          Kalender Penugasan
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Create a new parish event
+                          Penugasan setiap minggu
                         </p>
                       </div>
                     </div>
@@ -292,10 +465,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 mb-1">
-                          Record Donation
+                          Misa Lainnya
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Log a new donation entry
+                          Penugasan misa lainnya
                         </p>
                       </div>
                     </div>
