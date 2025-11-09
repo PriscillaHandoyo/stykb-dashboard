@@ -41,7 +41,7 @@ export default function LoginPage() {
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-center mb-2 text-black">
-          Parish Hub
+          St. Yakobus
         </h1>
         <p className="text-gray-500 text-center mb-8">
           Enter your credentials to access the dashboard.
