@@ -194,7 +194,7 @@ export default function DashboardPage() {
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Parish Hub</h2>
+          <h2 className="text-xl font-bold text-gray-900">St. Yakobus</h2>
         </div>
 
         {/* Navigation */}
