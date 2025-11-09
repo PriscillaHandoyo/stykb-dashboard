@@ -231,31 +231,37 @@ export default function DashboardPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Quick Actions
               </h2>
-              <div className="space-y-3">
-                <div className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors">
-                  <h3 className="font-medium text-gray-900 mb-1">
-                    Add New Lingkungan
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Register a new lingkungan
-                  </p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition-colors">
-                  <h3 className="font-medium text-gray-900 mb-1">
-                    Schedule Event
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Create a new parish event
-                  </p>
-                </div>
-                <div className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors">
-                  <h3 className="font-medium text-gray-900 mb-1">
-                    Record Donation
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Log a new donation entry
-                  </p>
-                </div>
+              <div className="space-y-5">
+                <Link href="/form-lingkungan">
+                  <div className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      Add New Lingkungan
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Register a new lingkungan
+                    </p>
+                  </div>
+                </Link>
+                <Link href="/kalendar-penugasan">
+                  <div className="p-4 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition-colors">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      Schedule Event
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Create a new parish event
+                    </p>
+                  </div>
+                </Link>
+                <Link href="/misa-lainnya">
+                  <div className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      Record Donation
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Log a new donation entry
+                    </p>
+                  </div>
+                </Link>
               </div>
             </div>
 
