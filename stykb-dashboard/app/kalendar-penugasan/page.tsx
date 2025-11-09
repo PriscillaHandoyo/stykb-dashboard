@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface LingkunganData {
   id: number;
@@ -707,9 +708,12 @@ export default function KalendarPenugasanPage() {
                 <span className="text-sm text-gray-700">
                   Welcome back, Admin!
                 </span>
-                <button className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
                   Logout
-                </button>
+                </Link>
               </div>
             </div>
           </div>

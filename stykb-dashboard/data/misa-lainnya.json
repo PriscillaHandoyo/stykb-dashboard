@@ -86,8 +86,8 @@
               "minTatib": "25"
             },
             {
-              "time": "10:48",
-              "minTatib": "25"
+              "time": "10:41",
+              "minTatib": "23"
             }
           ]
         },
@@ -116,8 +116,8 @@
         },
         {
           "church": "St. Yakobus",
-          "time": "10:48",
-          "minTatib": 25,
+          "time": "10:41",
+          "minTatib": 23,
           "assignedLingkungan": [
             {
               "name": "Felix 2",
