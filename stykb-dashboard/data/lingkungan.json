@@ -1761,5 +1761,30 @@
         ]
       }
     }
+  },
+  {
+    "id": 72,
+    "namaLingkungan": "Gregorius 1",
+    "namaKetua": "Oreo",
+    "nomorTelepon": "1842849114",
+    "jumlahTatib": "23",
+    "availability": {
+      "St. Yakobus": {
+        "Minggu": [
+          "08:00",
+          "11:00",
+          "17:00"
+        ],
+        "Sabtu": [
+          "17:00"
+        ]
+      },
+      "Pegangsaan 2": {
+        "Minggu": [
+          "07:30",
+          "10:30"
+        ]
+      }
+    }
   }
 ]

@@ -155,6 +155,44 @@
           "totalTatib": 24
         }
       ]
+    },
+    {
+      "name": "Pesta Santo Petrus",
+      "date": "2025-12-05",
+      "churches": [
+        {
+          "church": "St. Yakobus",
+          "masses": [
+            {
+              "time": "13:20",
+              "minTatib": "10"
+            }
+          ]
+        },
+        {
+          "church": "Pegangsaan 2",
+          "masses": [
+            {
+              "time": "",
+              "minTatib": ""
+            }
+          ]
+        }
+      ],
+      "assignments": [
+        {
+          "church": "St. Yakobus",
+          "time": "13:20",
+          "minTatib": 10,
+          "assignedLingkungan": [
+            {
+              "name": "Gabirel 1 ",
+              "tatib": 24
+            }
+          ],
+          "totalTatib": 24
+        }
+      ]
     }
   ]
 }

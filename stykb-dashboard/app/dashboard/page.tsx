@@ -9,6 +9,19 @@ export default function DashboardPage() {
   const [totalPaskahActivities, setTotalPaskahActivities] = useState(0);
   const [totalMisaLainnyaActivities, setTotalMisaLainnyaActivities] =
     useState(0);
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    // Set current date
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    setCurrentDate(today.toLocaleDateString("id-ID", options));
+  }, []);
 
   useEffect(() => {
     // Fetch lingkungan data
@@ -82,7 +95,7 @@ export default function DashboardPage() {
           .then((misaData) => {
             let misaLainnyaCount = 0;
             if (misaData.celebrations && misaData.celebrations.length > 0) {
-              misaData.celebrations.forEach((celebration) => {
+              misaData.celebrations.forEach((celebration: any) => {
                 if (celebration.date) {
                   const celebrationDate = new Date(celebration.date);
                   if (
@@ -304,6 +317,13 @@ export default function DashboardPage() {
 
         {/* Dashboard Content */}
         <div className="p-8">
+          {/* Current Date */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-700">
+              {currentDate}
+            </h2>
+          </div>
+
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
             {/* Total Lingkungan */}
@@ -452,9 +472,9 @@ export default function DashboardPage() {
                   </div>
                 </Link>
                 <Link href="/misa-lainnya">
-                  <div className="group p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-yellow-200 hover:border-yellow-300">
+                  <div className="group p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-purple-200 hover:border-purple-300">
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="flex-shrink-0 w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                         <svg
                           className="w-5 h-5 text-white"
                           fill="currentColor"
@@ -484,7 +504,7 @@ export default function DashboardPage() {
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
                       Incoming Assignment
@@ -495,7 +515,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
                       Incoming Assignment
@@ -506,7 +526,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
                       Incoming Assignment
@@ -517,7 +537,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
                       Incoming Assignment
