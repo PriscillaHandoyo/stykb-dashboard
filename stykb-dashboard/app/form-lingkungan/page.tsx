@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Toast from "../components/Toast";
 
 export default function FormLingkunganPage() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function FormLingkunganPage() {
     },
   });
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -96,14 +101,19 @@ export default function FormLingkunganPage() {
       });
 
       if (response.ok) {
-        alert("Data berhasil disimpan!");
-        router.push("/data-lingkungan");
+        setToast({ message: "Data berhasil disimpan!", type: "success" });
+        setTimeout(() => {
+          router.push("/data-lingkungan");
+        }, 1000);
       } else {
-        alert("Gagal menyimpan data");
+        setToast({ message: "Gagal menyimpan data", type: "error" });
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Terjadi kesalahan saat menyimpan data");
+      setToast({
+        message: "Terjadi kesalahan saat menyimpan data",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -469,6 +479,15 @@ export default function FormLingkunganPage() {
           </div>
         </div>
       </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

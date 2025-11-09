@@ -97,6 +97,10 @@
             {
               "time": "10:41",
               "minTatib": "20"
+            },
+            {
+              "time": "11:10",
+              "minTatib": "20"
             }
           ]
         }
@@ -108,11 +112,11 @@
           "minTatib": 25,
           "assignedLingkungan": [
             {
-              "name": "Gabriel 2",
-              "tatib": 26
+              "name": "Bartolemeus 4",
+              "tatib": 25
             }
           ],
-          "totalTatib": 26
+          "totalTatib": 25
         },
         {
           "church": "St. Yakobus",
@@ -120,7 +124,7 @@
           "minTatib": 23,
           "assignedLingkungan": [
             {
-              "name": "Felix 2",
+              "name": "Antonius 4",
               "tatib": 25
             }
           ],
@@ -132,11 +136,23 @@
           "minTatib": 20,
           "assignedLingkungan": [
             {
-              "name": "Yosef 2",
-              "tatib": 25
+              "name": "Agnes 3",
+              "tatib": 24
             }
           ],
-          "totalTatib": 25
+          "totalTatib": 24
+        },
+        {
+          "church": "Pegangsaan 2",
+          "time": "11:10",
+          "minTatib": 20,
+          "assignedLingkungan": [
+            {
+              "name": "Felix 3",
+              "tatib": 24
+            }
+          ],
+          "totalTatib": 24
         }
       ]
     }

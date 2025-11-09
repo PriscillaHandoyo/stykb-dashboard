@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Toast from "../components/Toast";
 
 interface LingkunganData {
   id: number;
@@ -27,6 +28,10 @@ export default function DataLingkunganPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChurch, setFilterChurch] = useState("all");
   const [sortBy, setSortBy] = useState("default");
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -130,13 +135,16 @@ export default function DataLingkunganPage() {
         if (response.ok) {
           // Reload data after successful deletion
           loadData();
-          alert("Data berhasil dihapus!");
+          setToast({ message: "Data berhasil dihapus!", type: "success" });
         } else {
-          alert("Gagal menghapus data");
+          setToast({ message: "Gagal menghapus data", type: "error" });
         }
       } catch (error) {
         console.error("Error deleting data:", error);
-        alert("Terjadi kesalahan saat menghapus data");
+        setToast({
+          message: "Terjadi kesalahan saat menghapus data",
+          type: "error",
+        });
       }
     }
   };
@@ -168,13 +176,16 @@ export default function DataLingkunganPage() {
         loadData();
         setShowEditModal(false);
         setEditFormData(null);
-        alert("Data berhasil diupdate!");
+        setToast({ message: "Data berhasil diupdate!", type: "success" });
       } else {
-        alert("Gagal mengupdate data");
+        setToast({ message: "Gagal mengupdate data", type: "error" });
       }
     } catch (error) {
       console.error("Error updating data:", error);
-      alert("Terjadi kesalahan saat mengupdate data");
+      setToast({
+        message: "Terjadi kesalahan saat mengupdate data",
+        type: "error",
+      });
     }
   };
 
@@ -759,6 +770,15 @@ export default function DataLingkunganPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

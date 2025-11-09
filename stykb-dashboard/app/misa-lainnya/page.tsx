@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Toast from "../components/Toast";
 
 interface MassTime {
   time: string;
@@ -76,6 +77,10 @@ export default function MisaLainnyaPage() {
         { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
       ],
     });
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
   useEffect(() => {
     loadLingkunganData();
@@ -313,12 +318,12 @@ export default function MisaLainnyaPage() {
 
   const handleSaveNewCelebration = () => {
     if (!newCelebration.name.trim()) {
-      alert("Mohon isi nama perayaan");
+      setToast({ message: "Mohon isi nama perayaan", type: "warning" });
       return;
     }
 
     if (!newCelebration.date) {
-      alert("Mohon isi tanggal perayaan");
+      setToast({ message: "Mohon isi tanggal perayaan", type: "warning" });
       return;
     }
 
@@ -327,7 +332,10 @@ export default function MisaLainnyaPage() {
     );
 
     if (!hasAnyMass) {
-      alert("Mohon isi setidaknya satu waktu misa");
+      setToast({
+        message: "Mohon isi setidaknya satu waktu misa",
+        type: "warning",
+      });
       return;
     }
 
@@ -359,7 +367,10 @@ export default function MisaLainnyaPage() {
     });
     setShowNewForm(false);
 
-    alert(`Jadwal ${newCelebration.name} berhasil disimpan!`);
+    setToast({
+      message: `Jadwal ${newCelebration.name} berhasil disimpan!`,
+      type: "success",
+    });
   };
 
   const handleRegenerateCelebration = (index: number) => {
@@ -471,12 +482,12 @@ export default function MisaLainnyaPage() {
     if (editingIndex === null) return;
 
     if (!editingCelebration.name.trim()) {
-      alert("Mohon isi nama perayaan");
+      setToast({ message: "Mohon isi nama perayaan", type: "warning" });
       return;
     }
 
     if (!editingCelebration.date) {
-      alert("Mohon isi tanggal perayaan");
+      setToast({ message: "Mohon isi tanggal perayaan", type: "warning" });
       return;
     }
 
@@ -485,7 +496,10 @@ export default function MisaLainnyaPage() {
     );
 
     if (!hasAnyMass) {
-      alert("Mohon isi setidaknya satu waktu misa");
+      setToast({
+        message: "Mohon isi setidaknya satu waktu misa",
+        type: "warning",
+      });
       return;
     }
 
@@ -519,7 +533,10 @@ export default function MisaLainnyaPage() {
       ],
     });
 
-    alert(`Jadwal ${editingCelebration.name} berhasil diupdate!`);
+    setToast({
+      message: `Jadwal ${editingCelebration.name} berhasil diupdate!`,
+      type: "success",
+    });
   };
 
   const handleCancelEdit = () => {
@@ -1106,6 +1123,15 @@ export default function MisaLainnyaPage() {
           )}
         </div>
       </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

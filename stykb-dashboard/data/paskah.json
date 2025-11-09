@@ -32,6 +32,10 @@
             {
               "time": "12:48",
               "minTatib": "30"
+            },
+            {
+              "time": "11:09",
+              "minTatib": "30"
             }
           ]
         },
@@ -228,16 +232,32 @@
         "totalTatib": 50
       },
       {
+        "church": "St. Yakobus",
+        "time": "11:09",
+        "minTatib": 30,
+        "assignedLingkungan": [
+          {
+            "name": "Antonius 4",
+            "tatib": 25
+          },
+          {
+            "name": "Agnes 3",
+            "tatib": 24
+          }
+        ],
+        "totalTatib": 49
+      },
+      {
         "church": "Pegangsaan 2",
         "time": "12:48",
         "minTatib": 29,
         "assignedLingkungan": [
           {
-            "name": "Agnes 3",
+            "name": "Felix 3",
             "tatib": 24
           },
           {
-            "name": "Felix 3",
+            "name": "Gabirel 1 ",
             "tatib": 24
           }
         ],
@@ -251,11 +271,11 @@
         "minTatib": 40,
         "assignedLingkungan": [
           {
-            "name": "Gabirel 1 ",
+            "name": "Markus 1",
             "tatib": 24
           },
           {
-            "name": "Markus 1",
+            "name": "Antonius 1",
             "tatib": 24
           }
         ],
@@ -267,11 +287,11 @@
         "minTatib": 40,
         "assignedLingkungan": [
           {
-            "name": "Antonius 1",
+            "name": "Bartolemeus 1",
             "tatib": 24
           },
           {
-            "name": "Bartolemeus 1",
+            "name": "FX 5",
             "tatib": 24
           }
         ],
@@ -283,15 +303,15 @@
         "minTatib": 35,
         "assignedLingkungan": [
           {
-            "name": "FX 5",
-            "tatib": 24
+            "name": "Matius 3",
+            "tatib": 23
           },
           {
-            "name": "Matius 3",
+            "name": "Yosef 3",
             "tatib": 23
           }
         ],
-        "totalTatib": 47
+        "totalTatib": 46
       },
       {
         "church": "Pegangsaan 2",
@@ -299,11 +319,11 @@
         "minTatib": 35,
         "assignedLingkungan": [
           {
-            "name": "Yosef 3",
+            "name": "Mikaela 3",
             "tatib": 23
           },
           {
-            "name": "Mikaela 3",
+            "name": "Anastasia 2",
             "tatib": 23
           }
         ],
@@ -317,11 +337,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Anastasia 2",
+            "name": "Yohanes 3",
             "tatib": 23
           },
           {
-            "name": "Yohanes 3",
+            "name": "Ignatius 2",
             "tatib": 23
           }
         ],
@@ -333,27 +353,27 @@
         "minTatib": 27,
         "assignedLingkungan": [
           {
-            "name": "Ignatius 2",
-            "tatib": 23
-          },
-          {
             "name": "Markus 2",
             "tatib": 23
-          }
-        ],
-        "totalTatib": 46
-      },
-      {
-        "church": "Pegangsaan 2",
-        "time": "12:52",
-        "minTatib": 30,
-        "assignedLingkungan": [
+          },
           {
             "name": "Markus 4",
             "tatib": 23
-          },
+          }
+        ],
+        "totalTatib": 46
+      },
+      {
+        "church": "Pegangsaan 2",
+        "time": "12:52",
+        "minTatib": 30,
+        "assignedLingkungan": [
           {
             "name": "Brigitta 3",
+            "tatib": 23
+          },
+          {
+            "name": "Rafael 1",
             "tatib": 23
           }
         ],
@@ -365,11 +385,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Rafael 1",
+            "name": "Rafael 2",
             "tatib": 23
           },
           {
-            "name": "Rafael 2",
+            "name": "FX 3",
             "tatib": 23
           }
         ],
@@ -383,15 +403,15 @@
         "minTatib": 40,
         "assignedLingkungan": [
           {
-            "name": "FX 3",
-            "tatib": 23
+            "name": "Yohanes 1",
+            "tatib": 22
           },
           {
-            "name": "Yohanes 1",
+            "name": "Yohanes 2",
             "tatib": 22
           }
         ],
-        "totalTatib": 45
+        "totalTatib": 44
       },
       {
         "church": "St. Yakobus",
@@ -399,15 +419,15 @@
         "minTatib": 40,
         "assignedLingkungan": [
           {
-            "name": "Yohanes 2",
+            "name": "Antonius 2",
             "tatib": 22
           },
           {
-            "name": "Antonius 2",
-            "tatib": 22
+            "name": "Mikaela 2",
+            "tatib": 21
           }
         ],
-        "totalTatib": 44
+        "totalTatib": 43
       },
       {
         "church": "Pegangsaan 2",
@@ -415,11 +435,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Mikaela 2",
+            "name": "Xavier 1",
             "tatib": 21
           },
           {
-            "name": "Xavier 1",
+            "name": "Xavier 2",
             "tatib": 21
           }
         ],
@@ -431,11 +451,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Xavier 2",
+            "name": "Xavier 3",
             "tatib": 21
           },
           {
-            "name": "Xavier 3",
+            "name": "Anastasia 1",
             "tatib": 21
           }
         ],
@@ -449,11 +469,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Anastasia 1",
+            "name": "Anastasia 3",
             "tatib": 21
           },
           {
-            "name": "Anastasia 3",
+            "name": "Igantius 1",
             "tatib": 21
           }
         ],
@@ -465,11 +485,11 @@
         "minTatib": 30,
         "assignedLingkungan": [
           {
-            "name": "Igantius 1",
+            "name": "Ignatius 3",
             "tatib": 21
           },
           {
-            "name": "Ignatius 3",
+            "name": "Antonius 3",
             "tatib": 21
           }
         ],
@@ -481,7 +501,7 @@
         "minTatib": 18,
         "assignedLingkungan": [
           {
-            "name": "Antonius 3",
+            "name": "Rafael 3",
             "tatib": 21
           }
         ],
@@ -493,11 +513,11 @@
         "minTatib": 25,
         "assignedLingkungan": [
           {
-            "name": "Rafael 3",
+            "name": "Bartolomeus 2",
             "tatib": 21
           },
           {
-            "name": "Bartolomeus 2",
+            "name": "FX 1",
             "tatib": 21
           }
         ],
@@ -509,7 +529,7 @@
         "minTatib": 23,
         "assignedLingkungan": [
           {
-            "name": "FX 1",
+            "name": "FX 4",
             "tatib": 21
           },
           {

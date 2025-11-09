@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Toast from "../components/Toast";
 
 interface MassTime {
   time: string;
@@ -106,6 +107,10 @@ export default function PaskahPage() {
       ],
     },
   });
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
   useEffect(() => {
     loadLingkunganData();
@@ -388,7 +393,10 @@ export default function PaskahPage() {
 
     // Validate that date is set
     if (!holyDay.date) {
-      alert(`Mohon isi tanggal untuk ${getHolyDayName(holyDayKey)}`);
+      setToast({
+        message: `Mohon isi tanggal untuk ${getHolyDayName(holyDayKey)}`,
+        type: "warning",
+      });
       return;
     }
 
@@ -398,11 +406,12 @@ export default function PaskahPage() {
     );
 
     if (!hasAnyMass) {
-      alert(
-        `Mohon isi setidaknya satu waktu misa untuk ${getHolyDayName(
+      setToast({
+        message: `Mohon isi setidaknya satu waktu misa untuk ${getHolyDayName(
           holyDayKey
-        )}`
-      );
+        )}`,
+        type: "warning",
+      });
       return;
     }
 
@@ -429,7 +438,10 @@ export default function PaskahPage() {
       [holyDayKey]: false,
     }));
 
-    alert(`Jadwal ${getHolyDayName(holyDayKey)} berhasil disimpan!`);
+    setToast({
+      message: `Jadwal ${getHolyDayName(holyDayKey)} berhasil disimpan!`,
+      type: "success",
+    });
   };
 
   const handleRegenerateHolyDay = (holyDayKey: string) => {
@@ -894,6 +906,15 @@ export default function PaskahPage() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
