@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const [totalMisaLainnyaActivities, setTotalMisaLainnyaActivities] =
     useState(0);
   const [currentDate, setCurrentDate] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Set current date
@@ -181,8 +182,49 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {isSidebarOpen ? (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          ) : (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          )}
+        </svg>
+      </button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-56 bg-white border-r border-gray-200">
+      <aside
+        className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 lg:w-56`}
+      >
         {/* Logo */}
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -280,18 +322,20 @@ export default function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-56">
+      <main className="lg:ml-56 min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="ml-12 lg:ml-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Dashboard
+              </h1>
               <p className="text-sm text-gray-500">
                 Overview of your parish activities
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block">
                 <svg
                   className="w-5 h-5 text-gray-600"
                   fill="currentColor"
@@ -301,12 +345,12 @@ export default function DashboardPage() {
                 </svg>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">
+                <span className="text-xs sm:text-sm text-gray-700 hidden sm:inline">
                   Welcome back, Admin!
                 </span>
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
                 >
                   Logout
                 </Link>
@@ -316,26 +360,28 @@ export default function DashboardPage() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Current Date */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-700">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-700">
               {currentDate}
             </h2>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {/* Total Lingkungan */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Lingkungan</p>
-                  <h3 className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Total Lingkungan
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {totalLingkungan}
                   </h3>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <svg
                     className="w-6 h-6 text-blue-600"
                     fill="currentColor"
@@ -348,19 +394,19 @@ export default function DashboardPage() {
             </div>
 
             {/* Monthly Activities */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
                     Monthly Activities
                   </p>
-                  <h3 className="text-3xl font-bold text-gray-900">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {monthlyActivities}
                   </h3>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-green-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-green-600"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -371,19 +417,19 @@ export default function DashboardPage() {
             </div>
 
             {/* Total Paskah Activities */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
                     Total Paskah Activities
                   </p>
-                  <h3 className="text-3xl font-bold text-gray-900">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {totalPaskahActivities}
                   </h3>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-yellow-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -394,19 +440,19 @@ export default function DashboardPage() {
             </div>
 
             {/* Total Misa Lainnya Activities */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
                     Total Misa Lainnya Activities
                   </p>
-                  <h3 className="text-3xl font-bold text-gray-900">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {totalMisaLainnyaActivities}
                   </h3>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-purple-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -418,13 +464,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions and Recent Activity */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Quick Actions */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                 Quick Actions
               </h2>
-              <div className="space-y-6">
+              <div className="space-y-3 sm:space-y-6">
                 <Link href="/form-lingkungan">
                   <div className="group p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-blue-200 hover:border-blue-300">
                     <div className="flex items-start gap-3">
@@ -498,51 +544,51 @@ export default function DashboardPage() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                 Recent Activity
               </h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Incoming Assignment
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Misa Minggu - St. Yakobus, 09 Nov 2025
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Incoming Assignment
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Misa Sabtu - Pegangsaan 2, 15 Nov 2025
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Incoming Assignment
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Misa Minggu - St. Yakobus, 17 Nov 2025
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-2 h-2 bg-gray-900 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Incoming Assignment
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Misa Minggu - Pegangsaan 2, 24 Nov 2025
                     </p>
                   </div>
