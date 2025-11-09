@@ -314,10 +314,10 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
-                      New member registered
+                      Incoming Assignment
                     </h4>
                     <p className="text-sm text-gray-600">
-                      John Smith joined the parish
+                      Misa Minggu - St. Yakobus, 09 Nov 2025
                     </p>
                   </div>
                 </div>
@@ -325,10 +325,10 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
-                      Sunday service completed
+                      Incoming Assignment
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Attendance: 156 members
+                      Misa Sabtu - Pegangsaan 2, 15 Nov 2025
                     </p>
                   </div>
                 </div>
@@ -336,10 +336,10 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
-                      Donation received
+                      Incoming Assignment
                     </h4>
                     <p className="text-sm text-gray-600">
-                      $500 from anonymous donor
+                      Misa Minggu - St. Yakobus, 17 Nov 2025
                     </p>
                   </div>
                 </div>
@@ -347,10 +347,10 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
-                      Event scheduled
+                      Incoming Assignment
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Christmas celebration - Dec 25
+                      Misa Minggu - Pegangsaan 2, 24 Nov 2025
                     </p>
                   </div>
                 </div>
