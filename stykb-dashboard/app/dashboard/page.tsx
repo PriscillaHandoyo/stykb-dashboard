@@ -231,35 +231,74 @@ export default function DashboardPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Quick Actions
               </h2>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <Link href="/form-lingkungan">
-                  <div className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors">
-                    <h3 className="font-medium text-gray-900 mb-1">
-                      Add New Lingkungan
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Register a new lingkungan
-                    </p>
+                  <div className="group p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-blue-200 hover:border-blue-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg
+                          className="w-5 h-5 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">
+                          Add New Lingkungan
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Register a new lingkungan
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </Link>
                 <Link href="/kalendar-penugasan">
-                  <div className="p-4 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition-colors">
-                    <h3 className="font-medium text-gray-900 mb-1">
-                      Schedule Event
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Create a new parish event
-                    </p>
+                  <div className="group p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-green-200 hover:border-green-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg
+                          className="w-5 h-5 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">
+                          Schedule Event
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Create a new parish event
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </Link>
                 <Link href="/misa-lainnya">
-                  <div className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors">
-                    <h3 className="font-medium text-gray-900 mb-1">
-                      Record Donation
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Log a new donation entry
-                    </p>
+                  <div className="group p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 border border-yellow-200 hover:border-yellow-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg
+                          className="w-5 h-5 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">
+                          Record Donation
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Log a new donation entry
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </Link>
               </div>
