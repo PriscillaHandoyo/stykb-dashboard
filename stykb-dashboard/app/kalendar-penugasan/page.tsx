@@ -92,7 +92,7 @@ export default function KalendarPenugasanPage() {
   const [misaLainnyaAssignedLingkungan, setMisaLainnyaAssignedLingkungan] =
     useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  
+
   // Min Tatib Configuration
   const [showMinTatibConfig, setShowMinTatibConfig] = useState(false);
   const [minTatibConfig, setMinTatibConfig] = useState<{
@@ -341,7 +341,7 @@ export default function KalendarPenugasanPage() {
         : "Pegangsaan 2";
       const timeKey = `${day === "Minggu" ? "Minggu" : "Sabtu"} ${time}`;
       const MIN_TATIB = minTatibConfig[normalizedChurch]?.[timeKey] || 20;
-      
+
       const assigned: AssignedLingkungan[] = [];
       let totalTatib = 0;
 
@@ -1178,7 +1178,12 @@ export default function KalendarPenugasanPage() {
                   Gereja St. Yakobus
                 </h3>
                 <div className="space-y-3">
-                  {["Sabtu 17:00", "Minggu 08:00", "Minggu 11:00", "Minggu 17:00"].map((time) => (
+                  {[
+                    "Sabtu 17:00",
+                    "Minggu 08:00",
+                    "Minggu 11:00",
+                    "Minggu 17:00",
+                  ].map((time) => (
                     <div key={time} className="flex items-center gap-4">
                       <label className="w-32 text-sm font-medium text-gray-700">
                         {time}
@@ -1192,7 +1197,8 @@ export default function KalendarPenugasanPage() {
                           if (!newConfig["St. Yakobus"]) {
                             newConfig["St. Yakobus"] = {};
                           }
-                          newConfig["St. Yakobus"][time] = parseInt(e.target.value) || 20;
+                          newConfig["St. Yakobus"][time] =
+                            parseInt(e.target.value) || 20;
                           setMinTatibConfig(newConfig);
                         }}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
@@ -1223,7 +1229,8 @@ export default function KalendarPenugasanPage() {
                           if (!newConfig["Pegangsaan 2"]) {
                             newConfig["Pegangsaan 2"] = {};
                           }
-                          newConfig["Pegangsaan 2"][time] = parseInt(e.target.value) || 20;
+                          newConfig["Pegangsaan 2"][time] =
+                            parseInt(e.target.value) || 20;
                           setMinTatibConfig(newConfig);
                         }}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
@@ -1243,7 +1250,10 @@ export default function KalendarPenugasanPage() {
                 Batal
               </button>
               <button
-                onClick={() => setShowMinTatibConfig(false)}
+                onClick={() => {
+                  generateAssignments();
+                  setShowMinTatibConfig(false);
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Simpan
