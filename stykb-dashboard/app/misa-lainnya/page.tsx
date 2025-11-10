@@ -186,7 +186,7 @@ export default function MisaLainnyaPage() {
   ): AssignedLingkungan[] => {
     if (!minTatib || minTatib === 0) return [];
 
-    const maxTatib = minTatib + Math.floor(minTatib * 0.4); // Max is min + 40%
+    const maxTatib = minTatib + 8;
 
     // Filter available lingkungan for this church that haven't been used yet
     const availableLingkungan = lingkunganData.filter((ling) => {
@@ -213,20 +213,13 @@ export default function MisaLainnyaPage() {
 
     // Assign lingkungan until we meet the minimum tatib requirement
     for (const ling of sortedLingkungan) {
-      if (currentTotal >= minTatib) break;
-
-      const tatibToAdd = parseInt(ling.jumlahTatib);
-      
-      // Check if adding this would exceed MAX_TATIB
-      if (currentTotal + tatibToAdd > maxTatib && currentTotal >= minTatib) {
-        break; // Stop to avoid exceeding max
-      }
+      if (currentTotal >= minTatib || currentTotal >= maxTatib) break;
 
       assigned.push({
         name: ling.namaLingkungan,
-        tatib: tatibToAdd,
+        tatib: parseInt(ling.jumlahTatib),
       });
-      currentTotal += tatibToAdd;
+      currentTotal += parseInt(ling.jumlahTatib);
     }
 
     return assigned;
