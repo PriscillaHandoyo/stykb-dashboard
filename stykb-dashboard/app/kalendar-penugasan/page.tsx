@@ -96,7 +96,7 @@ export default function KalendarPenugasanPage() {
   // Min Tatib Configuration
   const [showMinTatibConfig, setShowMinTatibConfig] = useState(false);
   const [minTatibConfig, setMinTatibConfig] = useState<{
-    [church: string]: { [time: string]: number };
+    [church: string]: { [time: string]: number | string };
   }>({
     "St. Yakobus": {
       "Sabtu 17:00": 20,
@@ -357,7 +357,11 @@ export default function KalendarPenugasanPage() {
         ? "St. Yakobus"
         : "Pegangsaan 2";
       const timeKey = `${day === "Minggu" ? "Minggu" : "Sabtu"} ${time}`;
-      const MIN_TATIB = minTatibConfig[normalizedChurch]?.[timeKey] || 20;
+      const configValue = minTatibConfig[normalizedChurch]?.[timeKey];
+      const MIN_TATIB =
+        typeof configValue === "number"
+          ? configValue
+          : (configValue ? parseInt(configValue as string) : 20) || 20;
       const MAX_TATIB = MIN_TATIB + 8;
 
       const assigned: AssignedLingkungan[] = [];
@@ -1209,14 +1213,17 @@ export default function KalendarPenugasanPage() {
                       <input
                         type="number"
                         min="1"
-                        value={minTatibConfig["St. Yakobus"]?.[time] || 20}
+                        value={minTatibConfig["St. Yakobus"]?.[time] ?? ""}
                         onChange={(e) => {
                           const newConfig = { ...minTatibConfig };
                           if (!newConfig["St. Yakobus"]) {
                             newConfig["St. Yakobus"] = {};
                           }
-                          newConfig["St. Yakobus"][time] =
-                            parseInt(e.target.value) || 20;
+                          const value =
+                            e.target.value === ""
+                              ? ""
+                              : parseInt(e.target.value);
+                          newConfig["St. Yakobus"][time] = value;
                           setMinTatibConfig(newConfig);
                         }}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
@@ -1241,14 +1248,17 @@ export default function KalendarPenugasanPage() {
                       <input
                         type="number"
                         min="1"
-                        value={minTatibConfig["Pegangsaan 2"]?.[time] || 20}
+                        value={minTatibConfig["Pegangsaan 2"]?.[time] ?? ""}
                         onChange={(e) => {
                           const newConfig = { ...minTatibConfig };
                           if (!newConfig["Pegangsaan 2"]) {
                             newConfig["Pegangsaan 2"] = {};
                           }
-                          newConfig["Pegangsaan 2"][time] =
-                            parseInt(e.target.value) || 20;
+                          const value =
+                            e.target.value === ""
+                              ? ""
+                              : parseInt(e.target.value);
+                          newConfig["Pegangsaan 2"][time] = value;
                           setMinTatibConfig(newConfig);
                         }}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
