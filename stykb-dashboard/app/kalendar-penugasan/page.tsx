@@ -92,6 +92,23 @@ export default function KalendarPenugasanPage() {
   const [misaLainnyaAssignedLingkungan, setMisaLainnyaAssignedLingkungan] =
     useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  
+  // Min Tatib Configuration
+  const [showMinTatibConfig, setShowMinTatibConfig] = useState(false);
+  const [minTatibConfig, setMinTatibConfig] = useState<{
+    [church: string]: { [time: string]: number };
+  }>({
+    "St. Yakobus": {
+      "Sabtu 17:00": 20,
+      "Minggu 08:00": 20,
+      "Minggu 11:00": 20,
+      "Minggu 17:00": 20,
+    },
+    "Pegangsaan 2": {
+      "Minggu 07:30": 20,
+      "Minggu 10:30": 20,
+    },
+  });
 
   const months = [
     "Januari",
@@ -318,14 +335,15 @@ export default function KalendarPenugasanPage() {
       time: string,
       currentDay: number
     ): AssignedLingkungan[] => {
-      const MIN_TATIB = 20;
-      const assigned: AssignedLingkungan[] = [];
-      let totalTatib = 0;
-
-      // Normalize church name for matching
+      // Get MIN_TATIB from configuration
       const normalizedChurch = church.includes("Yakobus")
         ? "St. Yakobus"
         : "Pegangsaan 2";
+      const timeKey = `${day === "Minggu" ? "Minggu" : "Sabtu"} ${time}`;
+      const MIN_TATIB = minTatibConfig[normalizedChurch]?.[timeKey] || 20;
+      
+      const assigned: AssignedLingkungan[] = [];
+      let totalTatib = 0;
 
       const currentWeek = getWeekOfMonth(currentDay);
       const previousWeek = currentWeek - 1;
@@ -814,19 +832,27 @@ export default function KalendarPenugasanPage() {
                 </select>
               </div>
 
-              <div className="w-full sm:w-auto sm:ml-auto">
+              <div className="w-full sm:w-auto sm:ml-auto flex flex-col sm:flex-row gap-2">
                 <label className="hidden sm:block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   &nbsp;
                 </label>
-                <button
-                  onClick={() => {
-                    setSelectedYear(new Date().getFullYear());
-                    setSelectedMonth(new Date().getMonth());
-                  }}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                >
-                  Bulan Ini
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowMinTatibConfig(true)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
+                  >
+                    Atur Min Tatib
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedYear(new Date().getFullYear());
+                      setSelectedMonth(new Date().getMonth());
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                  >
+                    Bulan Ini
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1114,6 +1140,118 @@ export default function KalendarPenugasanPage() {
           </div>
         </div>
       </main>
+
+      {/* Min Tatib Configuration Modal */}
+      {showMinTatibConfig && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Atur Minimal Tatib per Misa
+                </h2>
+                <button
+                  onClick={() => setShowMinTatibConfig(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* St. Yakobus */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Gereja St. Yakobus
+                </h3>
+                <div className="space-y-3">
+                  {["Sabtu 17:00", "Minggu 08:00", "Minggu 11:00", "Minggu 17:00"].map((time) => (
+                    <div key={time} className="flex items-center gap-4">
+                      <label className="w-32 text-sm font-medium text-gray-700">
+                        {time}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={minTatibConfig["St. Yakobus"]?.[time] || 20}
+                        onChange={(e) => {
+                          const newConfig = { ...minTatibConfig };
+                          if (!newConfig["St. Yakobus"]) {
+                            newConfig["St. Yakobus"] = {};
+                          }
+                          newConfig["St. Yakobus"][time] = parseInt(e.target.value) || 20;
+                          setMinTatibConfig(newConfig);
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                      />
+                      <span className="text-sm text-gray-500">tatib</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pegangsaan 2 */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Gereja Pegangsaan 2
+                </h3>
+                <div className="space-y-3">
+                  {["Minggu 07:30", "Minggu 10:30"].map((time) => (
+                    <div key={time} className="flex items-center gap-4">
+                      <label className="w-32 text-sm font-medium text-gray-700">
+                        {time}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={minTatibConfig["Pegangsaan 2"]?.[time] || 20}
+                        onChange={(e) => {
+                          const newConfig = { ...minTatibConfig };
+                          if (!newConfig["Pegangsaan 2"]) {
+                            newConfig["Pegangsaan 2"] = {};
+                          }
+                          newConfig["Pegangsaan 2"][time] = parseInt(e.target.value) || 20;
+                          setMinTatibConfig(newConfig);
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                      />
+                      <span className="text-sm text-gray-500">tatib</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowMinTatibConfig(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => setShowMinTatibConfig(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
