@@ -341,6 +341,7 @@ export default function KalendarPenugasanPage() {
         : "Pegangsaan 2";
       const timeKey = `${day === "Minggu" ? "Minggu" : "Sabtu"} ${time}`;
       const MIN_TATIB = minTatibConfig[normalizedChurch]?.[timeKey] || 20;
+      const MAX_TATIB = MIN_TATIB + Math.floor(MIN_TATIB * 0.4); // Max is min + 40%
 
       const assigned: AssignedLingkungan[] = [];
       let totalTatib = 0;
@@ -381,6 +382,12 @@ export default function KalendarPenugasanPage() {
 
         // This lingkungan is available, assign it
         const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+        
+        // Check if adding this would exceed MAX_TATIB
+        if (totalTatib + tatib > MAX_TATIB && totalTatib >= MIN_TATIB) {
+          continue; // Skip this lingkungan to avoid exceeding max
+        }
+        
         assigned.push({
           name: lingkungan.namaLingkungan,
           tatib: tatib,
@@ -432,6 +439,12 @@ export default function KalendarPenugasanPage() {
 
           // This lingkungan is available, assign it
           const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+          
+          // Check if adding this would exceed MAX_TATIB
+          if (totalTatib + tatib > MAX_TATIB && totalTatib >= MIN_TATIB) {
+            continue; // Skip this lingkungan to avoid exceeding max
+          }
+          
           assigned.push({
             name: lingkungan.namaLingkungan,
             tatib: tatib,

@@ -253,6 +253,8 @@ export default function PaskahPage() {
   ): AssignedLingkungan[] => {
     if (!minTatib || minTatib === 0) return [];
 
+    const maxTatib = minTatib + Math.floor(minTatib * 0.4); // Max is min + 40%
+
     // Filter available lingkungan for this church that haven't been used yet
     const availableLingkungan = lingkunganData.filter((ling) => {
       // Skip if already used
@@ -280,11 +282,18 @@ export default function PaskahPage() {
     for (const ling of sortedLingkungan) {
       if (currentTotal >= minTatib) break;
 
+      const tatibToAdd = parseInt(ling.jumlahTatib);
+      
+      // Check if adding this would exceed MAX_TATIB
+      if (currentTotal + tatibToAdd > maxTatib && currentTotal >= minTatib) {
+        break; // Stop to avoid exceeding max
+      }
+
       assigned.push({
         name: ling.namaLingkungan,
-        tatib: parseInt(ling.jumlahTatib),
+        tatib: tatibToAdd,
       });
-      currentTotal += parseInt(ling.jumlahTatib);
+      currentTotal += tatibToAdd;
     }
 
     return assigned;
