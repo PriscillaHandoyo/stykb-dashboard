@@ -101,13 +101,21 @@ export default function FormLingkunganPage() {
         body: JSON.stringify(dataToSave),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
         setToast({ message: "Data berhasil disimpan!", type: "success" });
         setTimeout(() => {
           router.push("/data-lingkungan");
         }, 1000);
       } else {
-        setToast({ message: "Gagal menyimpan data", type: "error" });
+        console.error("Error response:", result);
+        setToast({
+          message: `Gagal menyimpan data: ${
+            result.details || result.error || "Unknown error"
+          }`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error:", error);
