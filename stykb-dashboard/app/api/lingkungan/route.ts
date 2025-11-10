@@ -8,7 +8,11 @@ export async function GET() {
       .select('*')
       .order('id', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      // Return empty array instead of error object
+      return NextResponse.json([]);
+    }
 
     // Transform snake_case to camelCase for frontend
     const transformedData = (data || []).map((item: any) => ({
@@ -23,7 +27,8 @@ export async function GET() {
     return NextResponse.json(transformedData);
   } catch (error) {
     console.error('GET /api/lingkungan error:', error);
-    return NextResponse.json({ error: 'Failed to read data' }, { status: 500 });
+    // Return empty array on error so frontend doesn't break
+    return NextResponse.json([]);
   }
 }
 
