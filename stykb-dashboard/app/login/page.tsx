@@ -24,13 +24,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 sm:px-6 lg:px-8">
+      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-md">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+        <div className="flex justify-center mb-4 sm:mb-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-full flex items-center justify-center">
             <svg
-              className="w-10 h-10 text-white"
+              className="w-8 h-8 sm:w-10 sm:h-10 text-white"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -40,20 +40,20 @@ export default function LoginPage() {
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-center mb-2 text-black">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-black">
           St. Yakobus
         </h1>
-        <p className="text-gray-500 text-center mb-8">
+        <p className="text-sm sm:text-base text-gray-500 text-center mb-6 sm:mb-8">
           Enter your credentials to access the dashboard.
         </p>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit}>
           {/* Username Field */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs sm:text-sm font-medium text-gray-700 mb-2"
             >
               Username
             </label>
@@ -63,16 +63,16 @@ export default function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Admin"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500 text-sm sm:text-base"
               required
             />
           </div>
 
           {/* Password Field */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-xs sm:text-sm font-medium text-gray-700 mb-2"
             >
               Password
             </label>
@@ -82,14 +82,14 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="admin"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500 text-sm sm:text-base"
               required
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+            <div className="mb-4 p-2.5 sm:p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-xs sm:text-sm">
               {error}
             </div>
           )}
@@ -97,7 +97,7 @@ export default function LoginPage() {
           {/* Login Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+            className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base"
           >
             Login
           </button>

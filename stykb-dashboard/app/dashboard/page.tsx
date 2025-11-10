@@ -241,44 +241,49 @@ export default function DashboardPage() {
 
         {/* Navigation */}
         <nav className="px-3 space-y-1">
-          <a
+          <Link
             href="/dashboard"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg font-medium"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
             </svg>
             Dashboard
-          </a>
-          <a
+          </Link>
+          <Link
             href="/form-lingkungan"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
             </svg>
             Form Lingkungan
-          </a>
-          <a
+          </Link>
+          <Link
             href="/data-lingkungan"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
             </svg>
             Data Lingkungan
-          </a>
-          <a
+          </Link>
+          <Link
             href="/kalendar-penugasan"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
             </svg>
             Kalendar Penugasan
-          </a>
-          <a
+          </Link>
+          <Link
             href="/paskah"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg
@@ -295,16 +300,17 @@ export default function DashboardPage() {
               />
             </svg>
             Paskah
-          </a>
-          <a
+          </Link>
+          <Link
             href="/misa-lainnya"
+            onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
             </svg>
             Misa Lainnya
-          </a>
+          </Link>
         </nav>
 
         {/* User Profile */}
