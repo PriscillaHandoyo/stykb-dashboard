@@ -128,6 +128,23 @@ export default function KalendarPenugasanPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
+  // Load min tatib config from localStorage on mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem("minTatibConfig");
+    if (savedConfig) {
+      try {
+        setMinTatibConfig(JSON.parse(savedConfig));
+      } catch (error) {
+        console.error("Error loading min tatib config:", error);
+      }
+    }
+  }, []);
+
+  // Save min tatib config to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("minTatibConfig", JSON.stringify(minTatibConfig));
+  }, [minTatibConfig]);
+
   useEffect(() => {
     loadLingkunganData();
   }, []);
