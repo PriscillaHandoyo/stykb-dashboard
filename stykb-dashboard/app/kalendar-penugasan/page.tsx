@@ -92,6 +92,31 @@ export default function KalendarPenugasanPage() {
   const [misaLainnyaAssignedLingkungan, setMisaLainnyaAssignedLingkungan] =
     useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [isManualMode, setIsManualMode] = useState(false); // Track if in manual assignment mode
+  const [editingSlot, setEditingSlot] = useState<{
+    assignmentIndex: number;
+    action: "add" | "edit";
+  } | null>(null);
+
+  // LocalStorage helpers for persisting manual assignments
+  const saveAssignmentsToStorage = (assignments: Assignment[]) => {
+    const key = `kalendarAssignments-${selectedYear}-${selectedMonth}`;
+    localStorage.setItem(key, JSON.stringify(assignments));
+  };
+
+  const loadAssignmentsFromStorage = (): Assignment[] | null => {
+    const key = `kalendarAssignments-${selectedYear}-${selectedMonth}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved assignments:", e);
+        return null;
+      }
+    }
+    return null;
+  };
 
   // Shuffle handler for individual lingkungan
   const handleShuffleLingkungan = (
@@ -175,6 +200,106 @@ export default function KalendarPenugasanPage() {
 
     updatedAssignments[assignmentIndex] = updatedAssignment;
     setAssignments(updatedAssignments);
+    saveAssignmentsToStorage(updatedAssignments);
+  };
+
+  // Manual assignment handlers
+  const handleAddLingkungan = (
+    assignmentIndex: number,
+    lingkunganName: string
+  ) => {
+    const assignment = assignments[assignmentIndex];
+    const lingkungan = lingkunganData.find(
+      (l) => l.namaLingkungan === lingkunganName
+    );
+    if (!lingkungan) return;
+
+    const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+    const updatedAssignments = [...assignments];
+    const updatedAssignment = { ...updatedAssignments[assignmentIndex] };
+
+    updatedAssignment.assignedLingkungan = [
+      ...updatedAssignment.assignedLingkungan,
+      { name: lingkunganName, tatib },
+    ];
+
+    // Recalculate total
+    const newTotalTatib = updatedAssignment.assignedLingkungan.reduce(
+      (sum, l) => sum + l.tatib,
+      0
+    );
+
+    // Get MIN_TATIB from configuration
+    const normalizedChurch = assignment.church.includes("Yakobus")
+      ? "St. Yakobus"
+      : "Pegangsaan 2";
+    const timeKey = `${assignment.day === "Minggu" ? "Minggu" : "Sabtu"} ${
+      assignment.time
+    }`;
+    const configValue = minTatibConfig[normalizedChurch]?.[timeKey];
+    const MIN_TATIB =
+      typeof configValue === "number"
+        ? configValue
+        : (configValue ? parseInt(configValue as string) : 20) || 20;
+
+    updatedAssignment.totalTatib = newTotalTatib;
+    updatedAssignment.needsMore = newTotalTatib < MIN_TATIB;
+
+    updatedAssignments[assignmentIndex] = updatedAssignment;
+    setAssignments(updatedAssignments);
+    setEditingSlot(null);
+
+    // Save to localStorage
+    saveAssignmentsToStorage(updatedAssignments);
+  };
+
+  const handleRemoveLingkungan = (
+    assignmentIndex: number,
+    lingkunganIndex: number
+  ) => {
+    const assignment = assignments[assignmentIndex];
+    const updatedAssignments = [...assignments];
+    const updatedAssignment = { ...updatedAssignments[assignmentIndex] };
+
+    updatedAssignment.assignedLingkungan =
+      updatedAssignment.assignedLingkungan.filter(
+        (_, idx) => idx !== lingkunganIndex
+      );
+
+    // Recalculate total
+    const newTotalTatib = updatedAssignment.assignedLingkungan.reduce(
+      (sum, l) => sum + l.tatib,
+      0
+    );
+
+    // Get MIN_TATIB from configuration
+    const normalizedChurch = assignment.church.includes("Yakobus")
+      ? "St. Yakobus"
+      : "Pegangsaan 2";
+    const timeKey = `${assignment.day === "Minggu" ? "Minggu" : "Sabtu"} ${
+      assignment.time
+    }`;
+    const configValue = minTatibConfig[normalizedChurch]?.[timeKey];
+    const MIN_TATIB =
+      typeof configValue === "number"
+        ? configValue
+        : (configValue ? parseInt(configValue as string) : 20) || 20;
+
+    updatedAssignment.totalTatib = newTotalTatib;
+    updatedAssignment.needsMore = newTotalTatib < MIN_TATIB;
+
+    updatedAssignments[assignmentIndex] = updatedAssignment;
+    setAssignments(updatedAssignments);
+    saveAssignmentsToStorage(updatedAssignments);
+  };
+
+  const toggleManualMode = () => {
+    if (!isManualMode && selectedYear === 2025 && selectedMonth === 10) {
+      // Switching to manual mode for November 2025
+      setIsManualMode(true);
+    } else {
+      setIsManualMode(false);
+    }
   };
 
   // Min Tatib Configuration
@@ -240,7 +365,15 @@ export default function KalendarPenugasanPage() {
 
   useEffect(() => {
     if (lingkunganData.length > 0) {
-      generateAssignments();
+      // First try to load saved assignments for this month
+      const savedAssignments = loadAssignmentsFromStorage();
+      if (savedAssignments && savedAssignments.length > 0) {
+        // Use saved assignments
+        setAssignments(savedAssignments);
+      } else {
+        // Generate new assignments if no saved data
+        generateAssignments();
+      }
     }
   }, [
     selectedYear,
@@ -812,6 +945,7 @@ export default function KalendarPenugasanPage() {
     }
 
     setAssignments(assignments);
+    saveAssignmentsToStorage(assignments);
   };
 
   const groupByDate = () => {
@@ -1064,6 +1198,23 @@ export default function KalendarPenugasanPage() {
                   &nbsp;
                 </label>
                 <div className="flex gap-2">
+                  {selectedYear === 2025 && selectedMonth === 10 && (
+                    <button
+                      onClick={toggleManualMode}
+                      className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg transition-colors text-sm sm:text-base ${
+                        isManualMode
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                      }`}
+                      title={
+                        isManualMode
+                          ? "Mode Manual Aktif - Klik untuk kembali ke mode otomatis"
+                          : "Aktifkan Mode Manual untuk November"
+                      }
+                    >
+                      {isManualMode ? "✓ Manual" : "Manual"}
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowMinTatibConfig(true)}
                     className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
@@ -1262,28 +1413,117 @@ export default function KalendarPenugasanPage() {
                                   <td className="border border-gray-200 py-3 px-4 text-sm">
                                     {assignment.assignedLingkungan.length ===
                                     0 ? (
-                                      <div className="flex items-center gap-2">
-                                        <svg
-                                          className="w-4 h-4 text-orange-500"
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                        >
-                                          <path
-                                            fillRule="evenodd"
-                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                            clipRule="evenodd"
-                                          />
-                                        </svg>
-                                        <span className="text-orange-600 font-medium text-sm">
-                                          Lingkungan Kurang
-                                        </span>
-                                        {paskahAssignedLingkungan.size > 0 && (
-                                          <span className="text-xs text-gray-500">
-                                            (Beberapa lingkungan sudah bertugas
-                                            di Paskah)
+                                      isManualMode ? (
+                                        (() => {
+                                          const assignmentIndex =
+                                            assignments.findIndex(
+                                              (a) =>
+                                                a.date === assignment.date &&
+                                                a.church ===
+                                                  assignment.church &&
+                                                a.time === assignment.time
+                                            );
+
+                                          const allAssignedNames = new Set(
+                                            assignments.flatMap((a) =>
+                                              a.assignedLingkungan.map(
+                                                (l) => l.name
+                                              )
+                                            )
+                                          );
+
+                                          const normalizedChurch =
+                                            assignment.church.includes(
+                                              "Yakobus"
+                                            )
+                                              ? "St. Yakobus"
+                                              : "Pegangsaan 2";
+
+                                          const availableLingkungan =
+                                            lingkunganData.filter((ling) => {
+                                              if (
+                                                allAssignedNames.has(
+                                                  ling.namaLingkungan
+                                                )
+                                              )
+                                                return false;
+
+                                              const availability =
+                                                ling.availability[
+                                                  normalizedChurch
+                                                ];
+                                              if (!availability) return false;
+
+                                              const daySchedule =
+                                                assignment.day === "Minggu"
+                                                  ? availability.Minggu
+                                                  : availability.Sabtu;
+                                              if (
+                                                !daySchedule ||
+                                                !daySchedule.includes(
+                                                  assignment.time
+                                                )
+                                              )
+                                                return false;
+
+                                              return true;
+                                            });
+
+                                          return (
+                                            <select
+                                              onChange={(e) => {
+                                                if (e.target.value) {
+                                                  handleAddLingkungan(
+                                                    assignmentIndex,
+                                                    e.target.value
+                                                  );
+                                                  e.target.value = "";
+                                                }
+                                              }}
+                                              className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            >
+                                              <option value="">
+                                                + Tambah Lingkungan
+                                              </option>
+                                              {availableLingkungan.map(
+                                                (ling, lingIndex) => (
+                                                  <option
+                                                    key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
+                                                    value={ling.namaLingkungan}
+                                                  >
+                                                    {ling.namaLingkungan} (
+                                                    {ling.jumlahTatib} tatib)
+                                                  </option>
+                                                )
+                                              )}
+                                            </select>
+                                          );
+                                        })()
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <svg
+                                            className="w-4 h-4 text-orange-500"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                          <span className="text-orange-600 font-medium text-sm">
+                                            Lingkungan Kurang
                                           </span>
-                                        )}
-                                      </div>
+                                          {paskahAssignedLingkungan.size >
+                                            0 && (
+                                            <span className="text-xs text-gray-500">
+                                              (Beberapa lingkungan sudah
+                                              bertugas di Paskah)
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
                                     ) : (
                                       <div className="space-y-1">
                                         {assignment.assignedLingkungan.map(
@@ -1300,7 +1540,7 @@ export default function KalendarPenugasanPage() {
 
                                             return (
                                               <div
-                                                key={idx}
+                                                key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.name}-${idx}`}
                                                 className="flex items-center justify-between gap-2 text-gray-900 group"
                                               >
                                                 <div>
@@ -1309,34 +1549,157 @@ export default function KalendarPenugasanPage() {
                                                     ({ling.tatib} tatib)
                                                   </span>
                                                 </div>
-                                                <button
-                                                  onClick={() =>
-                                                    handleShuffleLingkungan(
-                                                      assignmentIndex,
-                                                      idx
-                                                    )
-                                                  }
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                                                  title="Shuffle ke lingkungan lain"
-                                                >
-                                                  <svg
-                                                    className="w-4 h-4 text-gray-600 hover:text-blue-600"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                  >
-                                                    <path
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                      strokeWidth={2}
-                                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                                    />
-                                                  </svg>
-                                                </button>
+                                                <div className="flex gap-1">
+                                                  {isManualMode && (
+                                                    <button
+                                                      onClick={() =>
+                                                        handleRemoveLingkungan(
+                                                          assignmentIndex,
+                                                          idx
+                                                        )
+                                                      }
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                                                      title="Hapus lingkungan ini"
+                                                    >
+                                                      <svg
+                                                        className="w-4 h-4 text-red-600"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                      >
+                                                        <path
+                                                          strokeLinecap="round"
+                                                          strokeLinejoin="round"
+                                                          strokeWidth={2}
+                                                          d="M6 18L18 6M6 6l12 12"
+                                                        />
+                                                      </svg>
+                                                    </button>
+                                                  )}
+                                                  {!isManualMode && (
+                                                    <button
+                                                      onClick={() =>
+                                                        handleShuffleLingkungan(
+                                                          assignmentIndex,
+                                                          idx
+                                                        )
+                                                      }
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                                                      title="Shuffle ke lingkungan lain"
+                                                    >
+                                                      <svg
+                                                        className="w-4 h-4 text-gray-600 hover:text-blue-600"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                      >
+                                                        <path
+                                                          strokeLinecap="round"
+                                                          strokeLinejoin="round"
+                                                          strokeWidth={2}
+                                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                        />
+                                                      </svg>
+                                                    </button>
+                                                  )}
+                                                </div>
                                               </div>
                                             );
                                           }
                                         )}
+                                        {isManualMode &&
+                                          (() => {
+                                            const assignmentIndex =
+                                              assignments.findIndex(
+                                                (a) =>
+                                                  a.date === assignment.date &&
+                                                  a.church ===
+                                                    assignment.church &&
+                                                  a.time === assignment.time
+                                              );
+
+                                            // Get all assigned lingkungan in this month
+                                            const allAssignedNames = new Set(
+                                              assignments.flatMap((a) =>
+                                                a.assignedLingkungan.map(
+                                                  (l) => l.name
+                                                )
+                                              )
+                                            );
+
+                                            // Get available lingkungan for this slot
+                                            const normalizedChurch =
+                                              assignment.church.includes(
+                                                "Yakobus"
+                                              )
+                                                ? "St. Yakobus"
+                                                : "Pegangsaan 2";
+
+                                            const availableLingkungan =
+                                              lingkunganData.filter((ling) => {
+                                                if (
+                                                  allAssignedNames.has(
+                                                    ling.namaLingkungan
+                                                  )
+                                                )
+                                                  return false;
+
+                                                const availability =
+                                                  ling.availability[
+                                                    normalizedChurch
+                                                  ];
+                                                if (!availability) return false;
+
+                                                const daySchedule =
+                                                  assignment.day === "Minggu"
+                                                    ? availability.Minggu
+                                                    : availability.Sabtu;
+                                                if (
+                                                  !daySchedule ||
+                                                  !daySchedule.includes(
+                                                    assignment.time
+                                                  )
+                                                )
+                                                  return false;
+
+                                                return true;
+                                              });
+
+                                            return (
+                                              <div className="mt-2">
+                                                <select
+                                                  onChange={(e) => {
+                                                    if (e.target.value) {
+                                                      handleAddLingkungan(
+                                                        assignmentIndex,
+                                                        e.target.value
+                                                      );
+                                                      e.target.value = "";
+                                                    }
+                                                  }}
+                                                  className="w-full text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                >
+                                                  <option value="">
+                                                    + Tambah Lingkungan
+                                                  </option>
+                                                  {availableLingkungan.map(
+                                                    (ling, lingIndex) => (
+                                                      <option
+                                                        key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
+                                                        value={
+                                                          ling.namaLingkungan
+                                                        }
+                                                      >
+                                                        {ling.namaLingkungan} (
+                                                        {ling.jumlahTatib}{" "}
+                                                        tatib)
+                                                      </option>
+                                                    )
+                                                  )}
+                                                </select>
+                                              </div>
+                                            );
+                                          })()}
                                         <div className="mt-2 pt-1 border-t border-gray-200">
                                           <span
                                             className={`text-xs font-medium ${
