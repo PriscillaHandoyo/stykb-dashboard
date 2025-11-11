@@ -100,12 +100,12 @@ export default function KalendarPenugasanPage() {
 
   // LocalStorage helpers for persisting manual assignments
   const saveAssignmentsToStorage = (assignments: Assignment[]) => {
-    const key = `kalendarAssignments-${selectedYear}-${selectedMonth}`;
+    const key = `kalendarAssignments-${selectedYear}-${selectedMonth + 1}`;
     localStorage.setItem(key, JSON.stringify(assignments));
   };
 
   const loadAssignmentsFromStorage = (): Assignment[] | null => {
-    const key = `kalendarAssignments-${selectedYear}-${selectedMonth}`;
+    const key = `kalendarAssignments-${selectedYear}-${selectedMonth + 1}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -1232,6 +1232,40 @@ export default function KalendarPenugasanPage() {
                     className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   >
                     Bulan Ini
+                  </button>
+                  <button
+                    onClick={() => {
+                      const key = `kalendarAssignments-${selectedYear}-${
+                        selectedMonth + 1
+                      }`;
+                      console.log("Saving to localStorage:", key);
+                      console.log("Number of assignments:", assignments.length);
+                      console.log("First assignment sample:", assignments[0]);
+                      saveAssignmentsToStorage(assignments);
+                      console.log("Saved! Verifying...");
+                      const saved = localStorage.getItem(key);
+                      console.log("Verification - data exists:", !!saved);
+                      if (saved) {
+                        const parsed = JSON.parse(saved);
+                        console.log(
+                          "Verification - assignment count:",
+                          parsed.length
+                        );
+                      }
+                      alert(
+                        `Jadwal tersimpan untuk ${new Date(
+                          selectedYear,
+                          selectedMonth
+                        ).toLocaleDateString("id-ID", {
+                          month: "long",
+                          year: "numeric",
+                        })}`
+                      );
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
+                    title="Simpan jadwal ke penyimpanan lokal"
+                  >
+                    Simpan
                   </button>
                 </div>
               </div>

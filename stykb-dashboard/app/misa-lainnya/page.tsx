@@ -111,6 +111,42 @@ export default function MisaLainnyaPage() {
     }
   };
 
+  // Helper function to get lingkungan assigned in Kalendar Penugasan for a specific month
+  const getKalendarAssignedLingkungan = (date: string): Set<string> => {
+    if (!date) return new Set();
+
+    const dateObj = new Date(date);
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const storageKey = `kalendarAssignments-${year}-${month}`;
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return new Set();
+
+      const assignments = JSON.parse(stored);
+      const assignedLingkungan = new Set<string>();
+
+      if (Array.isArray(assignments)) {
+        assignments.forEach((assignment: any) => {
+          if (
+            assignment.assignedLingkungan &&
+            Array.isArray(assignment.assignedLingkungan)
+          ) {
+            assignment.assignedLingkungan.forEach((ling: any) => {
+              assignedLingkungan.add(ling.name);
+            });
+          }
+        });
+      }
+
+      return assignedLingkungan;
+    } catch (error) {
+      console.error("Error reading kalendar assignments:", error);
+      return new Set();
+    }
+  };
+
   const loadMisaLainnyaData = async () => {
     try {
       const response = await fetch("/api/misa-lainnya");
@@ -1016,15 +1052,60 @@ export default function MisaLainnyaPage() {
                                     <option value="">
                                       -- Pilih Lingkungan --
                                     </option>
-                                    {lingkunganData.map((ling) => (
-                                      <option
-                                        key={ling.id}
-                                        value={ling.namaLingkungan}
-                                      >
-                                        {ling.namaLingkungan} (
-                                        {ling.jumlahTatib} tatib)
-                                      </option>
-                                    ))}
+                                    {(() => {
+                                      const kalendarAssigned =
+                                        getKalendarAssignedLingkungan(
+                                          editingCelebration.date
+                                        );
+                                      const assignedLingkungan =
+                                        lingkunganData.filter((ling) =>
+                                          kalendarAssigned.has(
+                                            ling.namaLingkungan
+                                          )
+                                        );
+                                      const notAssignedLingkungan =
+                                        lingkunganData.filter(
+                                          (ling) =>
+                                            !kalendarAssigned.has(
+                                              ling.namaLingkungan
+                                            )
+                                        );
+
+                                      return (
+                                        <>
+                                          {assignedLingkungan.length > 0 && (
+                                            <optgroup label="Sudah Bertugas di Kalendar Penugasan">
+                                              {assignedLingkungan.map(
+                                                (ling) => (
+                                                  <option
+                                                    key={ling.id}
+                                                    value={ling.namaLingkungan}
+                                                  >
+                                                    {ling.namaLingkungan} (
+                                                    {ling.jumlahTatib} tatib)
+                                                  </option>
+                                                )
+                                              )}
+                                            </optgroup>
+                                          )}
+                                          {notAssignedLingkungan.length > 0 && (
+                                            <optgroup label="Belum Bertugas di Kalendar Penugasan">
+                                              {notAssignedLingkungan.map(
+                                                (ling) => (
+                                                  <option
+                                                    key={ling.id}
+                                                    value={ling.namaLingkungan}
+                                                  >
+                                                    {ling.namaLingkungan} (
+                                                    {ling.jumlahTatib} tatib)
+                                                  </option>
+                                                )
+                                              )}
+                                            </optgroup>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </select>
                                 </div>
 
@@ -1451,15 +1532,54 @@ export default function MisaLainnyaPage() {
                                 className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
                               >
                                 <option value="">-- Pilih Lingkungan --</option>
-                                {lingkunganData.map((ling) => (
-                                  <option
-                                    key={ling.id}
-                                    value={ling.namaLingkungan}
-                                  >
-                                    {ling.namaLingkungan} ({ling.jumlahTatib}{" "}
-                                    tatib)
-                                  </option>
-                                ))}
+                                {(() => {
+                                  const kalendarAssigned =
+                                    getKalendarAssignedLingkungan(
+                                      newCelebration.date
+                                    );
+                                  const assignedLingkungan =
+                                    lingkunganData.filter((ling) =>
+                                      kalendarAssigned.has(ling.namaLingkungan)
+                                    );
+                                  const notAssignedLingkungan =
+                                    lingkunganData.filter(
+                                      (ling) =>
+                                        !kalendarAssigned.has(
+                                          ling.namaLingkungan
+                                        )
+                                    );
+
+                                  return (
+                                    <>
+                                      {assignedLingkungan.length > 0 && (
+                                        <optgroup label="Sudah Bertugas di Kalendar Penugasan">
+                                          {assignedLingkungan.map((ling) => (
+                                            <option
+                                              key={ling.id}
+                                              value={ling.namaLingkungan}
+                                            >
+                                              {ling.namaLingkungan} (
+                                              {ling.jumlahTatib} tatib)
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      )}
+                                      {notAssignedLingkungan.length > 0 && (
+                                        <optgroup label="Belum Bertugas di Kalendar Penugasan">
+                                          {notAssignedLingkungan.map((ling) => (
+                                            <option
+                                              key={ling.id}
+                                              value={ling.namaLingkungan}
+                                            >
+                                              {ling.namaLingkungan} (
+                                              {ling.jumlahTatib} tatib)
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </select>
                             </div>
 
