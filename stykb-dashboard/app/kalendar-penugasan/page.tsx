@@ -1614,30 +1614,147 @@ export default function KalendarPenugasanPage() {
                                                     </button>
                                                   )}
                                                   {!isManualMode && (
-                                                    <button
-                                                      onClick={() =>
-                                                        handleShuffleLingkungan(
-                                                          assignmentIndex,
-                                                          idx
-                                                        )
-                                                      }
-                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                                                      title="Shuffle ke lingkungan lain"
+                                                    <select
+                                                      value=""
+                                                      onChange={(e) => {
+                                                        if (e.target.value) {
+                                                          // Find the target assignment that has the selected lingkungan
+                                                          const targetLingkunganName =
+                                                            e.target.value;
+                                                          let targetAssignmentIndex =
+                                                            -1;
+                                                          let targetLingkunganIndex =
+                                                            -1;
+
+                                                          assignments.forEach(
+                                                            (a, aIdx) => {
+                                                              a.assignedLingkungan.forEach(
+                                                                (l, lIdx) => {
+                                                                  if (
+                                                                    l.name ===
+                                                                    targetLingkunganName
+                                                                  ) {
+                                                                    targetAssignmentIndex =
+                                                                      aIdx;
+                                                                    targetLingkunganIndex =
+                                                                      lIdx;
+                                                                  }
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+
+                                                          if (
+                                                            targetAssignmentIndex !==
+                                                            -1
+                                                          ) {
+                                                            // Swap the two lingkungan
+                                                            const updatedAssignments =
+                                                              [...assignments];
+                                                            const currentLingkungan =
+                                                              updatedAssignments[
+                                                                assignmentIndex
+                                                              ]
+                                                                .assignedLingkungan[
+                                                                idx
+                                                              ];
+                                                            const targetLingkungan =
+                                                              updatedAssignments[
+                                                                targetAssignmentIndex
+                                                              ]
+                                                                .assignedLingkungan[
+                                                                targetLingkunganIndex
+                                                              ];
+
+                                                            updatedAssignments[
+                                                              assignmentIndex
+                                                            ].assignedLingkungan[
+                                                              idx
+                                                            ] =
+                                                              targetLingkungan;
+                                                            updatedAssignments[
+                                                              targetAssignmentIndex
+                                                            ].assignedLingkungan[
+                                                              targetLingkunganIndex
+                                                            ] =
+                                                              currentLingkungan;
+
+                                                            // Recalculate totals
+                                                            updatedAssignments[
+                                                              assignmentIndex
+                                                            ].totalTatib =
+                                                              updatedAssignments[
+                                                                assignmentIndex
+                                                              ].assignedLingkungan.reduce(
+                                                                (sum, l) =>
+                                                                  sum + l.tatib,
+                                                                0
+                                                              );
+                                                            updatedAssignments[
+                                                              targetAssignmentIndex
+                                                            ].totalTatib =
+                                                              updatedAssignments[
+                                                                targetAssignmentIndex
+                                                              ].assignedLingkungan.reduce(
+                                                                (sum, l) =>
+                                                                  sum + l.tatib,
+                                                                0
+                                                              );
+
+                                                            setAssignments(
+                                                              updatedAssignments
+                                                            );
+                                                            saveAssignmentsToStorage(
+                                                              updatedAssignments
+                                                            );
+                                                          }
+                                                        }
+                                                      }}
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                                                      title="Tukar dengan lingkungan lain"
                                                     >
-                                                      <svg
-                                                        className="w-4 h-4 text-gray-600 hover:text-blue-600"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                      >
-                                                        <path
-                                                          strokeLinecap="round"
-                                                          strokeLinejoin="round"
-                                                          strokeWidth={2}
-                                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                                        />
-                                                      </svg>
-                                                    </button>
+                                                      <option value="">
+                                                        ✏️ Tukar
+                                                      </option>
+                                                      {(() => {
+                                                        // Get all assigned lingkungan in this month except the current one
+                                                        const allAssignedLingkungan: Array<{
+                                                          name: string;
+                                                          assignment: string;
+                                                        }> = [];
+                                                        assignments.forEach(
+                                                          (a) => {
+                                                            a.assignedLingkungan.forEach(
+                                                              (l) => {
+                                                                if (
+                                                                  l.name !==
+                                                                  ling.name
+                                                                ) {
+                                                                  allAssignedLingkungan.push(
+                                                                    {
+                                                                      name: l.name,
+                                                                      assignment: `${a.date} ${a.church} ${a.time}`,
+                                                                    }
+                                                                  );
+                                                                }
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+
+                                                        return allAssignedLingkungan.map(
+                                                          (item, i) => (
+                                                            <option
+                                                              key={i}
+                                                              value={item.name}
+                                                            >
+                                                              {item.name} (
+                                                              {item.assignment})
+                                                            </option>
+                                                          )
+                                                        );
+                                                      })()}
+                                                    </select>
                                                   )}
                                                 </div>
                                               </div>
