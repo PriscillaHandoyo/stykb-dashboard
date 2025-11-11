@@ -108,10 +108,29 @@ export default function PaskahPage() {
       ],
     },
   });
+  const [showFormFor, setShowFormFor] = useState<string | null>(null); // Track which holy day form is shown
+  const [formData, setFormData] = useState<{
+    date: string;
+    stYakobus: { time: string; minTatib: string }[];
+    pegangsaan2: { time: string; minTatib: string }[];
+  }>({
+    date: "",
+    stYakobus: [{ time: "", minTatib: "" }],
+    pegangsaan2: [{ time: "", minTatib: "" }],
+  });
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "warning" | "info";
   } | null>(null);
+
+  const holyDayNames = {
+    rabuAbu: "Rabu Abu",
+    mingguPalma: "Minggu Palma",
+    kamisPutih: "Kamis Putih",
+    jumatAgung: "Jumat Agung",
+    sabtuSuci: "Sabtu Suci",
+    mingguPaskah: "Minggu Paskah",
+  };
 
   useEffect(() => {
     loadLingkunganData();
@@ -204,11 +223,10 @@ export default function PaskahPage() {
     ];
 
     holyDayKeys.forEach((holyDayKey) => {
-      const holyDay = paskahSchedule[holyDayKey as keyof typeof paskahSchedule];
-
       // Skip if this holy day hasn't been saved yet
       if (!schedules[holyDayKey]) return;
 
+      const holyDay = schedules[holyDayKey];
       const assignments: MassAssignment[] = [];
 
       holyDay.churches.forEach((church) => {
@@ -545,13 +563,30 @@ export default function PaskahPage() {
           <h3 className="text-base sm:text-lg font-semibold text-gray-800">
             {holyDayName} ({formatDate(schedule.date)})
           </h3>
-          <button
-            type="button"
-            onClick={() => handleRegenerateHolyDay(holyDayKey)}
-            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
-          >
-            Regenerate Misa
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                // Reset form to blank
+                setFormData({
+                  date: "",
+                  stYakobus: [{ time: "", minTatib: "" }],
+                  pegangsaan2: [{ time: "", minTatib: "" }],
+                });
+                setShowFormFor(holyDayKey);
+              }}
+              className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+            >
+              Form
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRegenerateHolyDay(holyDayKey)}
+              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+            >
+              Regenerate Misa
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
           <div className="inline-block min-w-full align-middle px-4 sm:px-6 lg:px-0">
@@ -654,6 +689,175 @@ export default function PaskahPage() {
   const formatTime = (timeString: string) => {
     if (!timeString) return "";
     return timeString;
+  };
+
+  const renderBlankForm = (holyDayKey: string) => {
+    return (
+      <div>
+        {/* Date Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tanggal
+          </label>
+          <input
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+            placeholder="Pilih tanggal"
+          />
+        </div>
+
+        {/* St. Yakobus */}
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+            St. Yakobus
+          </h3>
+
+          {formData.stYakobus.map((mass, index) => (
+            <div key={index} className="flex gap-3 items-start mb-3">
+              <label className="text-sm font-medium text-gray-700 mt-3 min-w-[80px]">
+                Misa {index + 1}:
+              </label>
+              <div className="flex-1 flex flex-col gap-2">
+                <input
+                  type="time"
+                  value={mass.time}
+                  onChange={(e) => {
+                    const newMasses = [...formData.stYakobus];
+                    newMasses[index].time = e.target.value;
+                    setFormData({ ...formData, stYakobus: newMasses });
+                  }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                  placeholder="Pilih waktu"
+                />
+                <div className="flex gap-2 items-center">
+                  <label className="text-sm font-medium text-gray-700">
+                    Min Tatib:
+                  </label>
+                  <input
+                    type="number"
+                    value={mass.minTatib}
+                    onChange={(e) => {
+                      const newMasses = [...formData.stYakobus];
+                      newMasses[index].minTatib = e.target.value;
+                      setFormData({ ...formData, stYakobus: newMasses });
+                    }}
+                    min="0"
+                    placeholder="0"
+                    className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (formData.stYakobus.length > 1) {
+                    const newMasses = formData.stYakobus.filter(
+                      (_, i) => i !== index
+                    );
+                    setFormData({ ...formData, stYakobus: newMasses });
+                  }
+                }}
+                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors mt-3"
+                disabled={formData.stYakobus.length === 1}
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({
+                ...formData,
+                stYakobus: [...formData.stYakobus, { time: "", minTatib: "" }],
+              });
+            }}
+            className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+          >
+            + Tambah Waktu Misa
+          </button>
+        </div>
+
+        {/* Pegangsaan 2 */}
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+            Pegangsaan 2
+          </h3>
+
+          {formData.pegangsaan2.map((mass, index) => (
+            <div key={index} className="flex gap-3 items-start mb-3">
+              <label className="text-sm font-medium text-gray-700 mt-3 min-w-[80px]">
+                Misa {index + 1}:
+              </label>
+              <div className="flex-1 flex flex-col gap-2">
+                <input
+                  type="time"
+                  value={mass.time}
+                  onChange={(e) => {
+                    const newMasses = [...formData.pegangsaan2];
+                    newMasses[index].time = e.target.value;
+                    setFormData({ ...formData, pegangsaan2: newMasses });
+                  }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                  placeholder="Pilih waktu"
+                />
+                <div className="flex gap-2 items-center">
+                  <label className="text-sm font-medium text-gray-700">
+                    Min Tatib:
+                  </label>
+                  <input
+                    type="number"
+                    value={mass.minTatib}
+                    onChange={(e) => {
+                      const newMasses = [...formData.pegangsaan2];
+                      newMasses[index].minTatib = e.target.value;
+                      setFormData({ ...formData, pegangsaan2: newMasses });
+                    }}
+                    min="0"
+                    placeholder="0"
+                    className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (formData.pegangsaan2.length > 1) {
+                    const newMasses = formData.pegangsaan2.filter(
+                      (_, i) => i !== index
+                    );
+                    setFormData({ ...formData, pegangsaan2: newMasses });
+                  }
+                }}
+                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors mt-3"
+                disabled={formData.pegangsaan2.length === 1}
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({
+                ...formData,
+                pegangsaan2: [
+                  ...formData.pegangsaan2,
+                  { time: "", minTatib: "" },
+                ],
+              });
+            }}
+            className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+          >
+            + Tambah Waktu Misa
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const renderHolyDaySection = (
@@ -1031,6 +1235,120 @@ export default function PaskahPage() {
           </div>
         </div>
       </div>
+
+      {/* Form Modal */}
+      {showFormFor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {holyDayNames[showFormFor as keyof typeof holyDayNames]} - Form
+              </h2>
+              <button
+                onClick={() => {
+                  setShowFormFor(null);
+                  // Reset form data
+                  setFormData({
+                    date: "",
+                    stYakobus: [{ time: "", minTatib: "" }],
+                    pegangsaan2: [{ time: "", minTatib: "" }],
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {renderBlankForm(showFormFor)}
+
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFormFor(null);
+                    // Reset form data
+                    setFormData({
+                      date: "",
+                      stYakobus: [{ time: "", minTatib: "" }],
+                      pegangsaan2: [{ time: "", minTatib: "" }],
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Update paskahSchedule with form data
+                    const updatedSchedule = {
+                      date: formData.date,
+                      churches: [
+                        {
+                          church: "St. Yakobus",
+                          masses: formData.stYakobus.map((m) => ({
+                            time: m.time,
+                            minTatib: m.minTatib || "0",
+                            lingkungan: [],
+                          })),
+                        },
+                        {
+                          church: "Pegangsaan 2",
+                          masses: formData.pegangsaan2.map((m) => ({
+                            time: m.time,
+                            minTatib: m.minTatib || "0",
+                            lingkungan: [],
+                          })),
+                        },
+                      ],
+                    };
+
+                    setPaskahSchedule((prev) => ({
+                      ...prev,
+                      [showFormFor]: updatedSchedule,
+                    }));
+
+                    // Update savedSchedules
+                    const updatedSchedules = {
+                      ...savedSchedules,
+                      [showFormFor]: updatedSchedule,
+                    };
+                    setSavedSchedules(updatedSchedules);
+
+                    // Regenerate ALL assignments to maintain global uniqueness
+                    const allAssignments =
+                      generateAllAssignments(updatedSchedules);
+                    setMassAssignments(allAssignments);
+
+                    // Save to database
+                    savePaskahData(updatedSchedules, allAssignments);
+
+                    setToast({
+                      message: `Jadwal ${
+                        holyDayNames[showFormFor as keyof typeof holyDayNames]
+                      } berhasil disimpan!`,
+                      type: "success",
+                    });
+
+                    setShowFormFor(null);
+                    // Reset form data
+                    setFormData({
+                      date: "",
+                      stYakobus: [{ time: "", minTatib: "" }],
+                      pegangsaan2: [{ time: "", minTatib: "" }],
+                    });
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
