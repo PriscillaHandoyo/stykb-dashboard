@@ -93,6 +93,90 @@ export default function KalendarPenugasanPage() {
     useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
+  // Shuffle handler for individual lingkungan
+  const handleShuffleLingkungan = (
+    assignmentIndex: number,
+    lingkunganIndex: number
+  ) => {
+    const assignment = assignments[assignmentIndex];
+    const currentLingkungan = assignment.assignedLingkungan[lingkunganIndex];
+
+    // Get MIN_TATIB from configuration
+    const normalizedChurch = assignment.church.includes("Yakobus")
+      ? "St. Yakobus"
+      : "Pegangsaan 2";
+    const timeKey = `${assignment.day === "Minggu" ? "Minggu" : "Sabtu"} ${
+      assignment.time
+    }`;
+    const configValue = minTatibConfig[normalizedChurch]?.[timeKey];
+    const MIN_TATIB =
+      typeof configValue === "number"
+        ? configValue
+        : (configValue ? parseInt(configValue as string) : 20) || 20;
+
+    // Get all currently assigned lingkungan names in THIS MONTH only (excluding current slot)
+    const allAssignedNames = new Set(
+      assignments.flatMap((a) => a.assignedLingkungan.map((l) => l.name))
+    );
+
+    // Find alternative lingkungan that:
+    // 1. Is available for this church/day/time
+    // 2. Is not currently assigned to any slot in THIS MONTH
+    // Note: We allow lingkungan from Paskah and Misa Lainnya to be used
+    const availableAlternatives = lingkunganData.filter((ling) => {
+      // Skip if it's the current lingkungan
+      if (ling.namaLingkungan === currentLingkungan.name) return false;
+
+      // Skip if already assigned somewhere else in this month
+      if (allAssignedNames.has(ling.namaLingkungan)) return false;
+
+      // Check availability for this church/day/time
+      const availability = ling.availability[normalizedChurch];
+      if (!availability) return false;
+
+      const daySchedule =
+        assignment.day === "Minggu" ? availability.Minggu : availability.Sabtu;
+      if (!daySchedule || !daySchedule.includes(assignment.time)) return false;
+
+      return true;
+    });
+
+    if (availableAlternatives.length === 0) {
+      alert("Tidak ada lingkungan alternatif yang tersedia untuk slot ini");
+      return;
+    }
+
+    // Pick a random alternative
+    const randomIndex = Math.floor(
+      Math.random() * availableAlternatives.length
+    );
+    const newLingkungan = availableAlternatives[randomIndex];
+    const newTatib = parseInt(newLingkungan.jumlahTatib) || 0;
+
+    // Update the assignment
+    const updatedAssignments = [...assignments];
+    const updatedAssignment = { ...updatedAssignments[assignmentIndex] };
+    const updatedLingkunganList = [...updatedAssignment.assignedLingkungan];
+
+    updatedLingkunganList[lingkunganIndex] = {
+      name: newLingkungan.namaLingkungan,
+      tatib: newTatib,
+    };
+
+    // Recalculate total tatib
+    const newTotalTatib = updatedLingkunganList.reduce(
+      (sum, l) => sum + l.tatib,
+      0
+    );
+
+    updatedAssignment.assignedLingkungan = updatedLingkunganList;
+    updatedAssignment.totalTatib = newTotalTatib;
+    updatedAssignment.needsMore = newTotalTatib < MIN_TATIB;
+
+    updatedAssignments[assignmentIndex] = updatedAssignment;
+    setAssignments(updatedAssignments);
+  };
+
   // Min Tatib Configuration
   const [showMinTatibConfig, setShowMinTatibConfig] = useState(false);
   const [minTatibConfig, setMinTatibConfig] = useState<{
@@ -1203,17 +1287,55 @@ export default function KalendarPenugasanPage() {
                                     ) : (
                                       <div className="space-y-1">
                                         {assignment.assignedLingkungan.map(
-                                          (ling, idx) => (
-                                            <div
-                                              key={idx}
-                                              className="text-gray-900"
-                                            >
-                                              {ling.name}
-                                              <span className="text-xs text-gray-500 ml-2">
-                                                ({ling.tatib} tatib)
-                                              </span>
-                                            </div>
-                                          )
+                                          (ling, idx) => {
+                                            // Find the actual index in the assignments array
+                                            const assignmentIndex =
+                                              assignments.findIndex(
+                                                (a) =>
+                                                  a.date === assignment.date &&
+                                                  a.church ===
+                                                    assignment.church &&
+                                                  a.time === assignment.time
+                                              );
+
+                                            return (
+                                              <div
+                                                key={idx}
+                                                className="flex items-center justify-between gap-2 text-gray-900 group"
+                                              >
+                                                <div>
+                                                  {ling.name}
+                                                  <span className="text-xs text-gray-500 ml-2">
+                                                    ({ling.tatib} tatib)
+                                                  </span>
+                                                </div>
+                                                <button
+                                                  onClick={() =>
+                                                    handleShuffleLingkungan(
+                                                      assignmentIndex,
+                                                      idx
+                                                    )
+                                                  }
+                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                                                  title="Shuffle ke lingkungan lain"
+                                                >
+                                                  <svg
+                                                    className="w-4 h-4 text-gray-600 hover:text-blue-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                              </div>
+                                            );
+                                          }
                                         )}
                                         <div className="mt-2 pt-1 border-t border-gray-200">
                                           <span
