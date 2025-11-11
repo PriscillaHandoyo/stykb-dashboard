@@ -179,6 +179,13 @@ export default function MisaLainnyaPage() {
     return allCelebrations;
   };
 
+  // Helper function to extract wilayah (area) from lingkungan name
+  // e.g., "Agnes 2" -> "Agnes", "Maria 1" -> "Maria"
+  const getWilayah = (namaLingkungan: string): string => {
+    const match = namaLingkungan.match(/^(.+?)\s*\d+$/);
+    return match ? match[1].trim() : namaLingkungan;
+  };
+
   const assignLingkunganToMass = (
     church: string,
     minTatib: number,
@@ -203,23 +210,77 @@ export default function MisaLainnyaPage() {
       );
     });
 
-    // Sort by jumlah tatib descending to use larger groups first
+    const assigned: AssignedLingkungan[] = [];
+    let currentTotal = 0;
+
+    // Group lingkungan by wilayah
+    const wilayahGroups: { [wilayah: string]: typeof availableLingkungan } = {};
+    availableLingkungan.forEach((ling) => {
+      const wilayah = getWilayah(ling.namaLingkungan);
+      if (!wilayahGroups[wilayah]) {
+        wilayahGroups[wilayah] = [];
+      }
+      wilayahGroups[wilayah].push(ling);
+    });
+
+    // Calculate total tatib per wilayah and sort wilayah by total tatib
+    const wilayahTotals = Object.entries(wilayahGroups).map(
+      ([wilayah, lings]) => ({
+        wilayah,
+        lingkungan: lings.sort(
+          (a, b) => parseInt(b.jumlahTatib) - parseInt(a.jumlahTatib)
+        ),
+        totalTatib: lings.reduce((sum, l) => sum + parseInt(l.jumlahTatib), 0),
+      })
+    );
+
+    // Sort wilayah by total tatib descending (prioritize wilayah with most tatib)
+    wilayahTotals.sort((a, b) => b.totalTatib - a.totalTatib);
+
+    // Try to assign from a single wilayah first
+    for (const { wilayah, lingkungan } of wilayahTotals) {
+      let wilayahTotal = 0;
+      const wilayahAssigned: AssignedLingkungan[] = [];
+
+      for (const ling of lingkungan) {
+        const tatib = parseInt(ling.jumlahTatib);
+        wilayahAssigned.push({
+          name: ling.namaLingkungan,
+          tatib: tatib,
+        });
+        wilayahTotal += tatib;
+        usedLingkungan.add(ling.namaLingkungan);
+
+        if (wilayahTotal >= minTatib || wilayahTotal >= maxTatib) {
+          break;
+        }
+      }
+
+      // If this wilayah can meet the requirement, use it
+      if (wilayahTotal >= minTatib) {
+        return wilayahAssigned;
+      }
+
+      // Otherwise, revert (remove from usedLingkungan) and try next wilayah
+      wilayahAssigned.forEach((a) => usedLingkungan.delete(a.name));
+    }
+
+    // If no single wilayah can meet the requirement, assign from any available
     const sortedLingkungan = [...availableLingkungan].sort(
       (a, b) => parseInt(b.jumlahTatib) - parseInt(a.jumlahTatib)
     );
 
-    const assigned: AssignedLingkungan[] = [];
-    let currentTotal = 0;
-
-    // Assign lingkungan until we meet the minimum tatib requirement
     for (const ling of sortedLingkungan) {
       if (currentTotal >= minTatib || currentTotal >= maxTatib) break;
+      if (usedLingkungan.has(ling.namaLingkungan)) continue;
 
+      const tatib = parseInt(ling.jumlahTatib);
       assigned.push({
         name: ling.namaLingkungan,
-        tatib: parseInt(ling.jumlahTatib),
+        tatib: tatib,
       });
-      currentTotal += parseInt(ling.jumlahTatib);
+      currentTotal += tatib;
+      usedLingkungan.add(ling.namaLingkungan);
     }
 
     return assigned;
