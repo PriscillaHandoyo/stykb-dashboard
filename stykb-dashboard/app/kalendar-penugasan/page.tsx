@@ -537,6 +537,40 @@ export default function KalendarPenugasanPage() {
     // Create a unique seed for this month to ensure consistent but different shuffling per month
     const monthSeed = selectedYear * 12 + selectedMonth;
 
+    // Load previous month's assignments to avoid consecutive month repeats
+    const getPreviousMonthAssignedLingkungan = (): Set<string> => {
+      let prevYear = selectedYear;
+      let prevMonth = selectedMonth - 1;
+
+      // Handle year boundary (if current is January, prev is December of last year)
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear -= 1;
+      }
+
+      const storageKey = `kalendarAssignments-${prevYear}-${prevMonth + 1}`;
+      const stored = localStorage.getItem(storageKey);
+
+      if (!stored) return new Set<string>();
+
+      try {
+        const prevAssignments = JSON.parse(stored) as Assignment[];
+        const prevUsed = new Set<string>();
+
+        prevAssignments.forEach((assignment) => {
+          assignment.assignedLingkungan.forEach((ling) => {
+            prevUsed.add(ling.name);
+          });
+        });
+
+        return prevUsed;
+      } catch {
+        return new Set<string>();
+      }
+    };
+
+    const previousMonthUsed = getPreviousMonthAssignedLingkungan();
+
     // Don't filter out lingkungan globally - they should only be excluded on specific celebration dates
     // Use all available lingkungan for regular mass assignments
     const availableLingkungan = lingkunganData;
@@ -544,9 +578,16 @@ export default function KalendarPenugasanPage() {
     // Shuffle available lingkungan for this month
     const shuffledLingkungan = shuffleArray(availableLingkungan, monthSeed);
 
-    // Create a pool of lingkungan that haven't been assigned yet this month
-    // This pool will be depleted as we assign lingkungan
-    const unassignedPool = [...shuffledLingkungan];
+    // Separate into two pools: prefer lingkungan NOT used in previous month
+    const notUsedLastMonth = shuffledLingkungan.filter(
+      (ling) => !previousMonthUsed.has(ling.namaLingkungan)
+    );
+    const usedLastMonth = shuffledLingkungan.filter((ling) =>
+      previousMonthUsed.has(ling.namaLingkungan)
+    );
+
+    // Create a pool prioritizing those not used last month, then append last month's as fallback
+    const unassignedPool = [...notUsedLastMonth, ...usedLastMonth];
 
     // Track assignments per week to avoid assigning same lingkungan in consecutive weeks
     const weeklyAssignments: { [weekNum: number]: Set<string> } = {};
@@ -1235,25 +1276,12 @@ export default function KalendarPenugasanPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const key = `kalendarAssignments-${selectedYear}-${
-                        selectedMonth + 1
-                      }`;
-                      console.log("Saving to localStorage:", key);
-                      console.log("Number of assignments:", assignments.length);
-                      console.log("First assignment sample:", assignments[0]);
-                      saveAssignmentsToStorage(assignments);
-                      console.log("Saved! Verifying...");
-                      const saved = localStorage.getItem(key);
-                      console.log("Verification - data exists:", !!saved);
-                      if (saved) {
-                        const parsed = JSON.parse(saved);
-                        console.log(
-                          "Verification - assignment count:",
-                          parsed.length
-                        );
-                      }
+                      // Regenerate assignments with proper logic (shuffle, wilayah grouping, etc.)
+                      // This ensures all lingkungan assignment rules are applied before saving
+                      generateAssignments();
+
                       alert(
-                        `Jadwal tersimpan untuk ${new Date(
+                        `Jadwal telah di-generate ulang dan tersimpan untuk ${new Date(
                           selectedYear,
                           selectedMonth
                         ).toLocaleDateString("id-ID", {
@@ -1263,9 +1291,9 @@ export default function KalendarPenugasanPage() {
                       );
                     }}
                     className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
-                    title="Simpan jadwal ke penyimpanan lokal"
+                    title="Generate ulang dengan logika lengkap dan simpan ke localStorage"
                   >
-                    Simpan
+                    💾 Generate & Simpan
                   </button>
                 </div>
               </div>
