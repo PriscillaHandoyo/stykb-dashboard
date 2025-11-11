@@ -7,6 +7,7 @@ import Toast from "../components/Toast";
 interface MassTime {
   time: string;
   minTatib: string;
+  lingkungan?: string[];
 }
 
 interface ChurchSchedule {
@@ -111,12 +112,20 @@ export default function PaskahPage() {
   const [showFormFor, setShowFormFor] = useState<string | null>(null); // Track which holy day form is shown
   const [formData, setFormData] = useState<{
     date: string;
-    stYakobus: { time: string; minTatib: string }[];
-    pegangsaan2: { time: string; minTatib: string }[];
+    stYakobus: {
+      time: string;
+      minTatib: string;
+      assignedLingkungan: string[];
+    }[];
+    pegangsaan2: {
+      time: string;
+      minTatib: string;
+      assignedLingkungan: string[];
+    }[];
   }>({
     date: "",
-    stYakobus: [{ time: "", minTatib: "" }],
-    pegangsaan2: [{ time: "", minTatib: "" }],
+    stYakobus: [{ time: "", minTatib: "", assignedLingkungan: [] }],
+    pegangsaan2: [{ time: "", minTatib: "", assignedLingkungan: [] }],
   });
   const [toast, setToast] = useState<{
     message: string;
@@ -233,14 +242,38 @@ export default function PaskahPage() {
         church.masses.forEach((mass) => {
           if (mass.time) {
             const minTatib = parseInt(mass.minTatib) || 0;
-            const assignedLingkungan = assignLingkunganToMass(
-              church.church,
-              minTatib,
-              usedLingkungan
-            );
 
-            // Mark these lingkungan as used
-            assignedLingkungan.forEach((ling) => usedLingkungan.add(ling.name));
+            // Use manually assigned lingkungan if available, otherwise auto-generate
+            let assignedLingkungan: AssignedLingkungan[];
+
+            if (mass.lingkungan && mass.lingkungan.length > 0) {
+              // Use manually assigned lingkungan
+              assignedLingkungan = mass.lingkungan.map((lingName) => {
+                const lingData = lingkunganData.find(
+                  (l) => l.namaLingkungan === lingName
+                );
+                const tatib = lingData ? parseInt(lingData.jumlahTatib) : 0;
+                return {
+                  name: lingName,
+                  tatib: tatib,
+                };
+              });
+              // Mark these lingkungan as used
+              assignedLingkungan.forEach((ling) =>
+                usedLingkungan.add(ling.name)
+              );
+            } else {
+              // Auto-generate assignments
+              assignedLingkungan = assignLingkunganToMass(
+                church.church,
+                minTatib,
+                usedLingkungan
+              );
+              // Mark these lingkungan as used
+              assignedLingkungan.forEach((ling) =>
+                usedLingkungan.add(ling.name)
+              );
+            }
 
             const totalTatib = assignedLingkungan.reduce(
               (sum, ling) => sum + ling.tatib,
@@ -527,10 +560,34 @@ export default function PaskahPage() {
   };
 
   const handleRegenerateHolyDay = (holyDayKey: string) => {
-    setEditingHolyDays((prev) => ({
-      ...prev,
-      [holyDayKey]: true,
-    }));
+    // Get the saved schedule for this holy day
+    const schedule = savedSchedules[holyDayKey];
+
+    if (schedule) {
+      // Populate the form with existing data including assigned lingkungan
+      const stYakobusData = schedule.churches.find(
+        (c) => c.church === "St. Yakobus"
+      );
+      const pegangsaan2Data = schedule.churches.find(
+        (c) => c.church === "Pegangsaan 2"
+      );
+
+      setFormData({
+        date: schedule.date,
+        stYakobus: stYakobusData?.masses.map((m) => ({
+          time: m.time,
+          minTatib: m.minTatib,
+          assignedLingkungan: m.lingkungan || [],
+        })) || [{ time: "", minTatib: "", assignedLingkungan: [] }],
+        pegangsaan2: pegangsaan2Data?.masses.map((m) => ({
+          time: m.time,
+          minTatib: m.minTatib,
+          assignedLingkungan: m.lingkungan || [],
+        })) || [{ time: "", minTatib: "", assignedLingkungan: [] }],
+      });
+    }
+
+    setShowFormFor(holyDayKey);
   };
 
   const getHolyDayName = (key: string) => {
@@ -570,8 +627,12 @@ export default function PaskahPage() {
                 // Reset form to blank
                 setFormData({
                   date: "",
-                  stYakobus: [{ time: "", minTatib: "" }],
-                  pegangsaan2: [{ time: "", minTatib: "" }],
+                  stYakobus: [
+                    { time: "", minTatib: "", assignedLingkungan: [] },
+                  ],
+                  pegangsaan2: [
+                    { time: "", minTatib: "", assignedLingkungan: [] },
+                  ],
                 });
                 setShowFormFor(holyDayKey);
               }}
@@ -584,7 +645,7 @@ export default function PaskahPage() {
               onClick={() => handleRegenerateHolyDay(holyDayKey)}
               className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
             >
-              Regenerate Misa
+              Edit
             </button>
           </div>
         </div>
@@ -748,6 +809,91 @@ export default function PaskahPage() {
                     className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                   />
                 </div>
+
+                {/* Lingkungan Assignment */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Lingkungan yang Bertugas:
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      onChange={(e) => {
+                        if (
+                          e.target.value &&
+                          !mass.assignedLingkungan.includes(e.target.value)
+                        ) {
+                          const newMasses = [...formData.stYakobus];
+                          newMasses[index].assignedLingkungan = [
+                            ...newMasses[index].assignedLingkungan,
+                            e.target.value,
+                          ];
+                          setFormData({ ...formData, stYakobus: newMasses });
+                          e.target.value = "";
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                    >
+                      <option value="">-- Pilih Lingkungan --</option>
+                      {lingkunganData.map((ling) => (
+                        <option key={ling.id} value={ling.namaLingkungan}>
+                          {ling.namaLingkungan} ({ling.jumlahTatib} tatib)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Selected Lingkungan */}
+                  {mass.assignedLingkungan.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {mass.assignedLingkungan.map((lingName, lingIndex) => {
+                        const lingData = lingkunganData.find(
+                          (l) => l.namaLingkungan === lingName
+                        );
+                        return (
+                          <div
+                            key={lingIndex}
+                            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>
+                              {lingName} ({lingData?.jumlahTatib || 0} tatib)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMasses = [...formData.stYakobus];
+                                newMasses[index].assignedLingkungan = newMasses[
+                                  index
+                                ].assignedLingkungan.filter(
+                                  (_, i) => i !== lingIndex
+                                );
+                                setFormData({
+                                  ...formData,
+                                  stYakobus: newMasses,
+                                });
+                              }}
+                              className="text-blue-600 hover:text-blue-800 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Total Tatib Display */}
+                  {mass.assignedLingkungan.length > 0 && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      Total Tatib:{" "}
+                      {mass.assignedLingkungan.reduce((sum, lingName) => {
+                        const lingData = lingkunganData.find(
+                          (l) => l.namaLingkungan === lingName
+                        );
+                        return sum + parseInt(lingData?.jumlahTatib || "0");
+                      }, 0)}
+                    </div>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
@@ -772,7 +918,10 @@ export default function PaskahPage() {
             onClick={() => {
               setFormData({
                 ...formData,
-                stYakobus: [...formData.stYakobus, { time: "", minTatib: "" }],
+                stYakobus: [
+                  ...formData.stYakobus,
+                  { time: "", minTatib: "", assignedLingkungan: [] },
+                ],
               });
             }}
             className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
@@ -821,6 +970,91 @@ export default function PaskahPage() {
                     className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                   />
                 </div>
+
+                {/* Lingkungan Assignment */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Lingkungan yang Bertugas:
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      onChange={(e) => {
+                        if (
+                          e.target.value &&
+                          !mass.assignedLingkungan.includes(e.target.value)
+                        ) {
+                          const newMasses = [...formData.pegangsaan2];
+                          newMasses[index].assignedLingkungan = [
+                            ...newMasses[index].assignedLingkungan,
+                            e.target.value,
+                          ];
+                          setFormData({ ...formData, pegangsaan2: newMasses });
+                          e.target.value = "";
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                    >
+                      <option value="">-- Pilih Lingkungan --</option>
+                      {lingkunganData.map((ling) => (
+                        <option key={ling.id} value={ling.namaLingkungan}>
+                          {ling.namaLingkungan} ({ling.jumlahTatib} tatib)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Selected Lingkungan */}
+                  {mass.assignedLingkungan.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {mass.assignedLingkungan.map((lingName, lingIndex) => {
+                        const lingData = lingkunganData.find(
+                          (l) => l.namaLingkungan === lingName
+                        );
+                        return (
+                          <div
+                            key={lingIndex}
+                            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>
+                              {lingName} ({lingData?.jumlahTatib || 0} tatib)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMasses = [...formData.pegangsaan2];
+                                newMasses[index].assignedLingkungan = newMasses[
+                                  index
+                                ].assignedLingkungan.filter(
+                                  (_, i) => i !== lingIndex
+                                );
+                                setFormData({
+                                  ...formData,
+                                  pegangsaan2: newMasses,
+                                });
+                              }}
+                              className="text-blue-600 hover:text-blue-800 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Total Tatib Display */}
+                  {mass.assignedLingkungan.length > 0 && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      Total Tatib:{" "}
+                      {mass.assignedLingkungan.reduce((sum, lingName) => {
+                        const lingData = lingkunganData.find(
+                          (l) => l.namaLingkungan === lingName
+                        );
+                        return sum + parseInt(lingData?.jumlahTatib || "0");
+                      }, 0)}
+                    </div>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
@@ -847,7 +1081,7 @@ export default function PaskahPage() {
                 ...formData,
                 pegangsaan2: [
                   ...formData.pegangsaan2,
-                  { time: "", minTatib: "" },
+                  { time: "", minTatib: "", assignedLingkungan: [] },
                 ],
               });
             }}
@@ -1250,8 +1484,12 @@ export default function PaskahPage() {
                   // Reset form data
                   setFormData({
                     date: "",
-                    stYakobus: [{ time: "", minTatib: "" }],
-                    pegangsaan2: [{ time: "", minTatib: "" }],
+                    stYakobus: [
+                      { time: "", minTatib: "", assignedLingkungan: [] },
+                    ],
+                    pegangsaan2: [
+                      { time: "", minTatib: "", assignedLingkungan: [] },
+                    ],
                   });
                 }}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -1271,8 +1509,12 @@ export default function PaskahPage() {
                     // Reset form data
                     setFormData({
                       date: "",
-                      stYakobus: [{ time: "", minTatib: "" }],
-                      pegangsaan2: [{ time: "", minTatib: "" }],
+                      stYakobus: [
+                        { time: "", minTatib: "", assignedLingkungan: [] },
+                      ],
+                      pegangsaan2: [
+                        { time: "", minTatib: "", assignedLingkungan: [] },
+                      ],
                     });
                   }}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1291,7 +1533,7 @@ export default function PaskahPage() {
                           masses: formData.stYakobus.map((m) => ({
                             time: m.time,
                             minTatib: m.minTatib || "0",
-                            lingkungan: [],
+                            lingkungan: m.assignedLingkungan || [],
                           })),
                         },
                         {
@@ -1299,7 +1541,7 @@ export default function PaskahPage() {
                           masses: formData.pegangsaan2.map((m) => ({
                             time: m.time,
                             minTatib: m.minTatib || "0",
-                            lingkungan: [],
+                            lingkungan: m.assignedLingkungan || [],
                           })),
                         },
                       ],
@@ -1336,8 +1578,12 @@ export default function PaskahPage() {
                     // Reset form data
                     setFormData({
                       date: "",
-                      stYakobus: [{ time: "", minTatib: "" }],
-                      pegangsaan2: [{ time: "", minTatib: "" }],
+                      stYakobus: [
+                        { time: "", minTatib: "", assignedLingkungan: [] },
+                      ],
+                      pegangsaan2: [
+                        { time: "", minTatib: "", assignedLingkungan: [] },
+                      ],
                     });
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

@@ -7,6 +7,7 @@ import Toast from "../components/Toast";
 interface MassTime {
   time: string;
   minTatib: string;
+  lingkungan?: string[];
 }
 
 interface ChurchSchedule {
@@ -65,8 +66,14 @@ export default function MisaLainnyaPage() {
     name: "",
     date: "",
     churches: [
-      { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
-      { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+      {
+        church: "St. Yakobus",
+        masses: [{ time: "", minTatib: "", lingkungan: [] }],
+      },
+      {
+        church: "Pegangsaan 2",
+        masses: [{ time: "", minTatib: "", lingkungan: [] }],
+      },
     ],
   });
   const [editingCelebration, setEditingCelebration] =
@@ -74,8 +81,14 @@ export default function MisaLainnyaPage() {
       name: "",
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+        {
+          church: "St. Yakobus",
+          masses: [{ time: "", minTatib: "", lingkungan: [] }],
+        },
+        {
+          church: "Pegangsaan 2",
+          masses: [{ time: "", minTatib: "", lingkungan: [] }],
+        },
       ],
     });
   const [toast, setToast] = useState<{
@@ -143,14 +156,38 @@ export default function MisaLainnyaPage() {
         church.masses.forEach((mass) => {
           if (mass.time) {
             const minTatib = parseInt(mass.minTatib) || 0;
-            const assignedLingkungan = assignLingkunganToMass(
-              church.church,
-              minTatib,
-              usedLingkungan
-            );
 
-            // Mark these lingkungan as used
-            assignedLingkungan.forEach((ling) => usedLingkungan.add(ling.name));
+            // Use manually assigned lingkungan if available, otherwise auto-generate
+            let assignedLingkungan: AssignedLingkungan[];
+
+            if (mass.lingkungan && mass.lingkungan.length > 0) {
+              // Use manually assigned lingkungan
+              assignedLingkungan = mass.lingkungan.map((lingName) => {
+                const lingData = lingkunganData.find(
+                  (l) => l.namaLingkungan === lingName
+                );
+                const tatib = lingData ? parseInt(lingData.jumlahTatib) : 0;
+                return {
+                  name: lingName,
+                  tatib: tatib,
+                };
+              });
+              // Mark these lingkungan as used
+              assignedLingkungan.forEach((ling) =>
+                usedLingkungan.add(ling.name)
+              );
+            } else {
+              // Auto-generate assignments
+              assignedLingkungan = assignLingkunganToMass(
+                church.church,
+                minTatib,
+                usedLingkungan
+              );
+              // Mark these lingkungan as used
+              assignedLingkungan.forEach((ling) =>
+                usedLingkungan.add(ling.name)
+              );
+            }
 
             const totalTatib = assignedLingkungan.reduce(
               (sum, ling) => sum + ling.tatib,
@@ -353,7 +390,10 @@ export default function MisaLainnyaPage() {
         if (idx === churchIndex) {
           return {
             ...church,
-            masses: [...church.masses, { time: "", minTatib: "" }],
+            masses: [
+              ...church.masses,
+              { time: "", minTatib: "", lingkungan: [] },
+            ],
           };
         }
         return church;
@@ -425,8 +465,14 @@ export default function MisaLainnyaPage() {
       name: "",
       date: "",
       churches: [
-        { church: "St. Yakobus", masses: [{ time: "", minTatib: "" }] },
-        { church: "Pegangsaan 2", masses: [{ time: "", minTatib: "" }] },
+        {
+          church: "St. Yakobus",
+          masses: [{ time: "", minTatib: "", lingkungan: [] }],
+        },
+        {
+          church: "Pegangsaan 2",
+          masses: [{ time: "", minTatib: "", lingkungan: [] }],
+        },
       ],
     });
     setShowNewForm(false);
@@ -439,12 +485,19 @@ export default function MisaLainnyaPage() {
 
   const handleRegenerateCelebration = (index: number) => {
     const celebration = savedCelebrations[index];
-    // Set editing state
+    // Set editing state and populate form with existing data including lingkungan
     setEditingIndex(index);
     setEditingCelebration({
       name: celebration.name,
       date: celebration.date,
-      churches: celebration.churches,
+      churches: celebration.churches.map((church) => ({
+        church: church.church,
+        masses: church.masses.map((mass) => ({
+          time: mass.time,
+          minTatib: mass.minTatib,
+          lingkungan: mass.lingkungan || [],
+        })),
+      })),
     });
   };
 
@@ -515,7 +568,10 @@ export default function MisaLainnyaPage() {
         if (idx === churchIndex) {
           return {
             ...church,
-            masses: [...church.masses, { time: "", minTatib: "" }],
+            masses: [
+              ...church.masses,
+              { time: "", minTatib: "", lingkungan: [] },
+            ],
           };
         }
         return church;
@@ -926,6 +982,183 @@ export default function MisaLainnyaPage() {
                                   className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                                 />
                               </div>
+
+                              {/* Lingkungan Assignment */}
+                              <div className="flex flex-col gap-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                  Lingkungan yang Bertugas:
+                                </label>
+                                <div className="flex gap-2">
+                                  <select
+                                    onChange={(e) => {
+                                      if (
+                                        e.target.value &&
+                                        !(mass.lingkungan || []).includes(
+                                          e.target.value
+                                        )
+                                      ) {
+                                        setEditingCelebration((prev) => {
+                                          const updated = { ...prev };
+                                          const updatedChurches =
+                                            updated.churches.map((ch, cIdx) => {
+                                              if (cIdx === churchIndex) {
+                                                return {
+                                                  ...ch,
+                                                  masses: ch.masses.map(
+                                                    (m, mIdx) => {
+                                                      if (mIdx === massIndex) {
+                                                        return {
+                                                          ...m,
+                                                          lingkungan: [
+                                                            ...(m.lingkungan ||
+                                                              []),
+                                                            e.target.value,
+                                                          ],
+                                                        };
+                                                      }
+                                                      return m;
+                                                    }
+                                                  ),
+                                                };
+                                              }
+                                              return ch;
+                                            });
+                                          return {
+                                            ...updated,
+                                            churches: updatedChurches,
+                                          };
+                                        });
+                                        e.target.value = "";
+                                      }
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                                  >
+                                    <option value="">
+                                      -- Pilih Lingkungan --
+                                    </option>
+                                    {lingkunganData.map((ling) => (
+                                      <option
+                                        key={ling.id}
+                                        value={ling.namaLingkungan}
+                                      >
+                                        {ling.namaLingkungan} (
+                                        {ling.jumlahTatib} tatib)
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {/* Selected Lingkungan */}
+                                {mass.lingkungan &&
+                                  mass.lingkungan.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      {mass.lingkungan.map(
+                                        (lingName, lingIndex) => {
+                                          const lingData = lingkunganData.find(
+                                            (l) => l.namaLingkungan === lingName
+                                          );
+                                          return (
+                                            <div
+                                              key={lingIndex}
+                                              className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                                            >
+                                              <span>
+                                                {lingName} (
+                                                {lingData?.jumlahTatib || 0}{" "}
+                                                tatib)
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setEditingCelebration(
+                                                    (prev) => {
+                                                      const updated = {
+                                                        ...prev,
+                                                      };
+                                                      const updatedChurches =
+                                                        updated.churches.map(
+                                                          (ch, cIdx) => {
+                                                            if (
+                                                              cIdx ===
+                                                              churchIndex
+                                                            ) {
+                                                              return {
+                                                                ...ch,
+                                                                masses:
+                                                                  ch.masses.map(
+                                                                    (
+                                                                      m,
+                                                                      mIdx
+                                                                    ) => {
+                                                                      if (
+                                                                        mIdx ===
+                                                                        massIndex
+                                                                      ) {
+                                                                        return {
+                                                                          ...m,
+                                                                          lingkungan:
+                                                                            (
+                                                                              m.lingkungan ||
+                                                                              []
+                                                                            ).filter(
+                                                                              (
+                                                                                _,
+                                                                                i
+                                                                              ) =>
+                                                                                i !==
+                                                                                lingIndex
+                                                                            ),
+                                                                        };
+                                                                      }
+                                                                      return m;
+                                                                    }
+                                                                  ),
+                                                              };
+                                                            }
+                                                            return ch;
+                                                          }
+                                                        );
+                                                      return {
+                                                        ...updated,
+                                                        churches:
+                                                          updatedChurches,
+                                                      };
+                                                    }
+                                                  );
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800 font-bold"
+                                              >
+                                                ×
+                                              </button>
+                                            </div>
+                                          );
+                                        }
+                                      )}
+                                    </div>
+                                  )}
+
+                                {/* Total Tatib Display */}
+                                {mass.lingkungan &&
+                                  mass.lingkungan.length > 0 && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      Total Tatib:{" "}
+                                      {mass.lingkungan.reduce(
+                                        (sum, lingName) => {
+                                          const lingData = lingkunganData.find(
+                                            (l) => l.namaLingkungan === lingName
+                                          );
+                                          return (
+                                            sum +
+                                            parseInt(
+                                              lingData?.jumlahTatib || "0"
+                                            )
+                                          );
+                                        },
+                                        0
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
                             </div>
                             <button
                               type="button"
@@ -997,7 +1230,7 @@ export default function MisaLainnyaPage() {
                           }
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                          Regenerate Misa
+                          Edit
                         </button>
                         <button
                           onClick={() =>
@@ -1186,6 +1419,152 @@ export default function MisaLainnyaPage() {
                               placeholder="0"
                               className="w-24 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500"
                             />
+                          </div>
+
+                          {/* Lingkungan Assignment */}
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Lingkungan yang Bertugas:
+                            </label>
+                            <div className="flex gap-2">
+                              <select
+                                onChange={(e) => {
+                                  if (
+                                    e.target.value &&
+                                    !(mass.lingkungan || []).includes(
+                                      e.target.value
+                                    )
+                                  ) {
+                                    setNewCelebration((prev) => {
+                                      const updated = { ...prev };
+                                      const updatedChurches =
+                                        updated.churches.map((ch, cIdx) => {
+                                          if (cIdx === churchIndex) {
+                                            return {
+                                              ...ch,
+                                              masses: ch.masses.map(
+                                                (m, mIdx) => {
+                                                  if (mIdx === massIndex) {
+                                                    return {
+                                                      ...m,
+                                                      lingkungan: [
+                                                        ...(m.lingkungan || []),
+                                                        e.target.value,
+                                                      ],
+                                                    };
+                                                  }
+                                                  return m;
+                                                }
+                                              ),
+                                            };
+                                          }
+                                          return ch;
+                                        });
+                                      return {
+                                        ...updated,
+                                        churches: updatedChurches,
+                                      };
+                                    });
+                                    e.target.value = "";
+                                  }
+                                }}
+                                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
+                              >
+                                <option value="">-- Pilih Lingkungan --</option>
+                                {lingkunganData.map((ling) => (
+                                  <option
+                                    key={ling.id}
+                                    value={ling.namaLingkungan}
+                                  >
+                                    {ling.namaLingkungan} ({ling.jumlahTatib}{" "}
+                                    tatib)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Selected Lingkungan */}
+                            {mass.lingkungan && mass.lingkungan.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {mass.lingkungan.map((lingName, lingIndex) => {
+                                  const lingData = lingkunganData.find(
+                                    (l) => l.namaLingkungan === lingName
+                                  );
+                                  return (
+                                    <div
+                                      key={lingIndex}
+                                      className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                                    >
+                                      <span>
+                                        {lingName} ({lingData?.jumlahTatib || 0}{" "}
+                                        tatib)
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setNewCelebration((prev) => {
+                                            const updated = { ...prev };
+                                            const updatedChurches =
+                                              updated.churches.map(
+                                                (ch, cIdx) => {
+                                                  if (cIdx === churchIndex) {
+                                                    return {
+                                                      ...ch,
+                                                      masses: ch.masses.map(
+                                                        (m, mIdx) => {
+                                                          if (
+                                                            mIdx === massIndex
+                                                          ) {
+                                                            return {
+                                                              ...m,
+                                                              lingkungan: (
+                                                                m.lingkungan ||
+                                                                []
+                                                              ).filter(
+                                                                (_, i) =>
+                                                                  i !==
+                                                                  lingIndex
+                                                              ),
+                                                            };
+                                                          }
+                                                          return m;
+                                                        }
+                                                      ),
+                                                    };
+                                                  }
+                                                  return ch;
+                                                }
+                                              );
+                                            return {
+                                              ...updated,
+                                              churches: updatedChurches,
+                                            };
+                                          });
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 font-bold"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Total Tatib Display */}
+                            {mass.lingkungan && mass.lingkungan.length > 0 && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                Total Tatib:{" "}
+                                {mass.lingkungan.reduce((sum, lingName) => {
+                                  const lingData = lingkunganData.find(
+                                    (l) => l.namaLingkungan === lingName
+                                  );
+                                  return (
+                                    sum + parseInt(lingData?.jumlahTatib || "0")
+                                  );
+                                }, 0)}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <button
