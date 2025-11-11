@@ -990,6 +990,7 @@ export default function MisaLainnyaPage() {
                                 </label>
                                 <div className="flex gap-2">
                                   <select
+                                    value=""
                                     onChange={(e) => {
                                       if (
                                         e.target.value &&
@@ -1028,7 +1029,6 @@ export default function MisaLainnyaPage() {
                                             churches: updatedChurches,
                                           };
                                         });
-                                        e.target.value = "";
                                       }
                                     }}
                                     className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
@@ -1428,6 +1428,7 @@ export default function MisaLainnyaPage() {
                             </label>
                             <div className="flex gap-2">
                               <select
+                                value=""
                                 onChange={(e) => {
                                   if (
                                     e.target.value &&
@@ -1465,7 +1466,6 @@ export default function MisaLainnyaPage() {
                                         churches: updatedChurches,
                                       };
                                     });
-                                    e.target.value = "";
                                   }
                                 }}
                                 className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900"
