@@ -537,12 +537,9 @@ export default function KalendarPenugasanPage() {
     // Create a unique seed for this month to ensure consistent but different shuffling per month
     const monthSeed = selectedYear * 12 + selectedMonth;
 
-    // Filter out lingkungan that are already assigned in Paskah or Misa Lainnya celebrations this month
-    const availableLingkungan = lingkunganData.filter(
-      (ling) =>
-        !paskahAssignedLingkungan.has(ling.namaLingkungan) &&
-        !misaLainnyaAssignedLingkungan.has(ling.namaLingkungan)
-    );
+    // Don't filter out lingkungan globally - they should only be excluded on specific celebration dates
+    // Use all available lingkungan for regular mass assignments
+    const availableLingkungan = lingkunganData;
 
     // Shuffle available lingkungan for this month
     const shuffledLingkungan = shuffleArray(availableLingkungan, monthSeed);
@@ -831,6 +828,12 @@ export default function KalendarPenugasanPage() {
           month: "2-digit",
           year: "numeric",
         });
+
+        // Skip this date if it's a Paskah or Misa Lainnya celebration
+        // Those celebrations will use their manually assigned lingkungan
+        if (paskahDates[dateStr] || misaLainnyaDates[dateStr]) {
+          continue;
+        }
 
         // St. Yakobus assignments
         if (dayOfWeek === 0) {

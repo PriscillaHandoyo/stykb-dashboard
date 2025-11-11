@@ -145,8 +145,7 @@ export default function MisaLainnyaPage() {
     // Use provided celebrations or fall back to state
     const celebrations = celebrationsToUse || savedCelebrations;
 
-    // Track which lingkungan have been assigned across all celebrations
-    const usedLingkungan = new Set<string>();
+    // No longer track used lingkungan globally - lingkungan can serve multiple celebrations on different dates
     const allCelebrations: CelebrationWithAssignments[] = [];
 
     celebrations.forEach((celebration) => {
@@ -172,20 +171,11 @@ export default function MisaLainnyaPage() {
                   tatib: tatib,
                 };
               });
-              // Mark these lingkungan as used
-              assignedLingkungan.forEach((ling) =>
-                usedLingkungan.add(ling.name)
-              );
             } else {
               // Auto-generate assignments
               assignedLingkungan = assignLingkunganToMass(
                 church.church,
-                minTatib,
-                usedLingkungan
-              );
-              // Mark these lingkungan as used
-              assignedLingkungan.forEach((ling) =>
-                usedLingkungan.add(ling.name)
+                minTatib
               );
             }
 
@@ -225,18 +215,14 @@ export default function MisaLainnyaPage() {
 
   const assignLingkunganToMass = (
     church: string,
-    minTatib: number,
-    usedLingkungan: Set<string>
+    minTatib: number
   ): AssignedLingkungan[] => {
     if (!minTatib || minTatib === 0) return [];
 
     const maxTatib = minTatib + 8;
 
-    // Filter available lingkungan for this church that haven't been used yet
+    // Filter available lingkungan for this church
     const availableLingkungan = lingkunganData.filter((ling) => {
-      // Skip if already used
-      if (usedLingkungan.has(ling.namaLingkungan)) return false;
-
       // Check if lingkungan is available for this church (any day)
       const churchAvailability = ling.availability[church];
       if (!churchAvailability) return false;
@@ -286,7 +272,6 @@ export default function MisaLainnyaPage() {
           tatib: tatib,
         });
         wilayahTotal += tatib;
-        usedLingkungan.add(ling.namaLingkungan);
 
         if (wilayahTotal >= minTatib || wilayahTotal >= maxTatib) {
           break;
@@ -297,9 +282,6 @@ export default function MisaLainnyaPage() {
       if (wilayahTotal >= minTatib) {
         return wilayahAssigned;
       }
-
-      // Otherwise, revert (remove from usedLingkungan) and try next wilayah
-      wilayahAssigned.forEach((a) => usedLingkungan.delete(a.name));
     }
 
     // If no single wilayah can meet the requirement, assign from any available
@@ -309,7 +291,6 @@ export default function MisaLainnyaPage() {
 
     for (const ling of sortedLingkungan) {
       if (currentTotal >= minTatib || currentTotal >= maxTatib) break;
-      if (usedLingkungan.has(ling.namaLingkungan)) continue;
 
       const tatib = parseInt(ling.jumlahTatib);
       assigned.push({
@@ -317,7 +298,6 @@ export default function MisaLainnyaPage() {
         tatib: tatib,
       });
       currentTotal += tatib;
-      usedLingkungan.add(ling.namaLingkungan);
     }
 
     return assigned;
