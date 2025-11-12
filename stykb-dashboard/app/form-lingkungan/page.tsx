@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Toast from "../components/Toast";
 
+interface Wilayah {
+  id: number;
+  nama_wilayah: string;
+}
+
 export default function FormLingkunganPage() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [wilayahList, setWilayahList] = useState<Wilayah[]>([]);
+  const [loadingWilayah, setLoadingWilayah] = useState(true);
   const [formData, setFormData] = useState({
     namaLingkungan: "",
     namaKetua: "",
     nomorTelepon: "",
     jumlahTatib: "",
+    wilayahId: "" as string | number,
     availability: {
       "Gereja St. Yakobus": {
         Minggu: [] as string[],
@@ -29,8 +37,44 @@ export default function FormLingkunganPage() {
     type: "success" | "error" | "warning" | "info";
   } | null>(null);
 
+  // Load wilayah list on component mount
+  useEffect(() => {
+    loadWilayahList();
+  }, []);
+
+  const loadWilayahList = async () => {
+    try {
+      const response = await fetch("/api/wilayah");
+      const data = await response.json();
+      setWilayahList(data || []);
+    } catch (error) {
+      console.error("Error loading wilayah:", error);
+      setToast({
+        message: "Gagal memuat data wilayah",
+        type: "error",
+      });
+    } finally {
+      setLoadingWilayah(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+
+    // Auto-suggest wilayah based on lingkungan name
+    if (field === "namaLingkungan" && value) {
+      // Extract potential wilayah name (e.g., "Agnes 2" → "Agnes")
+      const match = value.match(/^([A-Za-z\s]+)\s*\d*$/);
+      if (match) {
+        const potentialWilayah = match[1].trim();
+        const matchingWilayah = wilayahList.find(
+          (w) => w.nama_wilayah.toLowerCase() === potentialWilayah.toLowerCase()
+        );
+        if (matchingWilayah) {
+          setFormData((prev) => ({ ...prev, wilayahId: matchingWilayah.id }));
+        }
+      }
+    }
   };
 
   const handleCheckboxChange = (
@@ -82,6 +126,7 @@ export default function FormLingkunganPage() {
         namaKetua: formData.namaKetua,
         nomorTelepon: formData.nomorTelepon,
         jumlahTatib: formData.jumlahTatib,
+        wilayahId: formData.wilayahId || null,
         availability: {
           "St. Yakobus": {
             Minggu: formData.availability["Gereja St. Yakobus"].Minggu,
@@ -336,11 +381,50 @@ export default function FormLingkunganPage() {
                     onChange={(e) =>
                       handleInputChange("namaLingkungan", e.target.value)
                     }
-                    placeholder="Masukkan nama lingkungan"
+                    placeholder="Contoh: Agnes 2, Maria 1"
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-400"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Wilayah akan terdeteksi otomatis dari nama lingkungan
+                  </p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Wilayah <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.wilayahId}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        wilayahId: e.target.value
+                          ? parseInt(e.target.value)
+                          : "",
+                      }))
+                    }
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                    required
+                  >
+                    <option value="">Pilih Wilayah</option>
+                    {loadingWilayah ? (
+                      <option disabled>Loading wilayah...</option>
+                    ) : (
+                      wilayahList.map((wilayah) => (
+                        <option key={wilayah.id} value={wilayah.id}>
+                          {wilayah.nama_wilayah}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Kelompok wilayah dari lingkungan ini
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Fields Row 2 */}
+              <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nama Ketua Lingkungan{" "}
@@ -357,10 +441,6 @@ export default function FormLingkunganPage() {
                     required
                   />
                 </div>
-              </div>
-
-              {/* Form Fields Row 2 */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nomor Telepon Ketua Lingkungan{" "}
@@ -377,6 +457,10 @@ export default function FormLingkunganPage() {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Form Fields Row 3 */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Jumlah Tatib <span className="text-red-500">*</span>

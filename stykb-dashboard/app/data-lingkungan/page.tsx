@@ -10,6 +10,11 @@ interface LingkunganData {
   namaKetua: string;
   nomorTelepon: string;
   jumlahTatib: string;
+  wilayahId?: number;
+  wilayah?: {
+    id: number;
+    nama_wilayah: string;
+  };
   availability: {
     [church: string]: {
       [day: string]: string[];
@@ -522,9 +527,12 @@ export default function DataLingkunganPage() {
                             Nama Lingkungan
                           </th>
                           <th className="hidden sm:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">
-                            Ketua Lingkungan
+                            Wilayah
                           </th>
                           <th className="hidden md:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">
+                            Ketua Lingkungan
+                          </th>
+                          <th className="hidden lg:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">
                             No. Telepon
                           </th>
                           <th className="hidden lg:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">
@@ -542,7 +550,7 @@ export default function DataLingkunganPage() {
                         {filteredData.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={7}
                               className="py-8 text-center text-gray-500"
                             >
                               Tidak ada data yang sesuai dengan pencarian
@@ -558,9 +566,20 @@ export default function DataLingkunganPage() {
                                 {item.namaLingkungan}
                               </td>
                               <td className="hidden sm:table-cell py-4 px-4 text-sm text-gray-700">
-                                {item.namaKetua}
+                                {item.wilayah ? (
+                                  <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                                    {item.wilayah.nama_wilayah}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">
+                                    Tidak ada
+                                  </span>
+                                )}
                               </td>
                               <td className="hidden md:table-cell py-4 px-4 text-sm text-gray-700">
+                                {item.namaKetua}
+                              </td>
+                              <td className="hidden lg:table-cell py-4 px-4 text-sm text-gray-700">
                                 {item.nomorTelepon}
                               </td>
                               <td className="hidden lg:table-cell py-4 px-4 text-sm text-gray-700">
@@ -662,6 +681,21 @@ export default function DataLingkunganPage() {
                 </label>
                 <p className="text-gray-900 mt-1">
                   {selectedItem.namaLingkungan}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-600">
+                  Wilayah
+                </label>
+                <p className="text-gray-900 mt-1">
+                  {selectedItem.wilayah ? (
+                    <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                      {selectedItem.wilayah.nama_wilayah}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">Tidak ada</span>
+                  )}
                 </p>
               </div>
 
