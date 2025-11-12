@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 interface LingkunganData {
   id: number;
@@ -1282,6 +1285,111 @@ export default function KalendarPenugasanPage() {
     return grouped;
   };
 
+  // Export to PDF function
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+
+    // Title
+    const monthName = new Date(selectedYear, selectedMonth).toLocaleDateString(
+      "id-ID",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
+    doc.setFontSize(16);
+    doc.text(`Jadwal Penugasan Tatib - ${monthName}`, 14, 15);
+
+    // Prepare data for table
+    const tableData: any[] = [];
+    assignments.forEach((assignment) => {
+      const lingkunganNames = assignment.assignedLingkungan
+        .map((l) => `${l.name} (${l.tatib} tatib)`)
+        .join(", ");
+
+      tableData.push([
+        assignment.date,
+        assignment.day,
+        assignment.church,
+        assignment.time,
+        lingkunganNames || "-",
+        assignment.totalTatib.toString(),
+        assignment.needsMore ? "Kurang" : "Cukup",
+      ]);
+    });
+
+    // Add table
+    autoTable(doc, {
+      head: [
+        [
+          "Tanggal",
+          "Hari",
+          "Gereja",
+          "Waktu",
+          "Lingkungan",
+          "Total Tatib",
+          "Status",
+        ],
+      ],
+      body: tableData,
+      startY: 25,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [79, 70, 229] }, // Purple
+    });
+
+    // Save PDF
+    doc.save(`Jadwal-Tatib-${monthName.replace(/\s/g, "-")}.pdf`);
+  };
+
+  // Export to Excel function
+  const exportToExcel = () => {
+    const monthName = new Date(selectedYear, selectedMonth).toLocaleDateString(
+      "id-ID",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
+
+    // Prepare data for Excel
+    const excelData = assignments.map((assignment) => ({
+      Tanggal: assignment.date,
+      Hari: assignment.day,
+      Gereja: assignment.church,
+      Waktu: assignment.time,
+      Lingkungan:
+        assignment.assignedLingkungan
+          .map((l) => `${l.name} (${l.tatib} tatib)`)
+          .join(", ") || "-",
+      "Total Tatib": assignment.totalTatib,
+      Status: assignment.needsMore ? "Kurang" : "Cukup",
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    worksheet["!cols"] = [
+      { wch: 12 }, // Tanggal
+      { wch: 10 }, // Hari
+      { wch: 15 }, // Gereja
+      { wch: 8 }, // Waktu
+      { wch: 50 }, // Lingkungan
+      { wch: 12 }, // Total Tatib
+      { wch: 10 }, // Status
+    ];
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Jadwal Tatib");
+
+    // Save Excel file
+    XLSX.writeFile(
+      workbook,
+      `Jadwal-Tatib-${monthName.replace(/\s/g, "-")}.xlsx`
+    );
+  };
+
   const groupedAssignments = groupByDate();
 
   return (
@@ -1575,6 +1683,13 @@ export default function KalendarPenugasanPage() {
                     title="Simpan jadwal saat ini (termasuk perubahan manual) ke database"
                   >
                     💾 Simpan
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base"
+                    title="Download jadwal ke PDF"
+                  >
+                    📄 Download
                   </button>
                 </div>
               </div>
