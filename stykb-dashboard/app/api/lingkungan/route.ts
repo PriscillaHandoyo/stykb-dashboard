@@ -5,7 +5,13 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from('lingkungan')
-      .select('*')
+      .select(`
+        *,
+        wilayah:wilayah_id (
+          id,
+          nama_wilayah
+        )
+      `)
       .order('id', { ascending: true });
 
     if (error) {
@@ -21,6 +27,8 @@ export async function GET() {
       namaKetua: item.nama_ketua,
       nomorTelepon: item.nomor_telepon,
       jumlahTatib: item.jumlah_tatib,
+      wilayahId: item.wilayah_id,
+      wilayah: item.wilayah,
       availability: item.availability
     }));
 
@@ -43,9 +51,16 @@ export async function POST(request: Request) {
         nama_ketua: newData.namaKetua,
         nomor_telepon: newData.nomorTelepon,
         jumlah_tatib: newData.jumlahTatib,
+        wilayah_id: newData.wilayahId || null,
         availability: newData.availability
       }])
-      .select()
+      .select(`
+        *,
+        wilayah:wilayah_id (
+          id,
+          nama_wilayah
+        )
+      `)
       .single();
 
     if (error) throw error;
@@ -57,6 +72,8 @@ export async function POST(request: Request) {
       namaKetua: data.nama_ketua,
       nomorTelepon: data.nomor_telepon,
       jumlahTatib: data.jumlah_tatib,
+      wilayahId: data.wilayah_id,
+      wilayah: data.wilayah,
       availability: data.availability
     };
 
@@ -81,11 +98,18 @@ export async function PUT(request: Request) {
         nama_ketua: updatedItem.namaKetua,
         nomor_telepon: updatedItem.nomorTelepon,
         jumlah_tatib: updatedItem.jumlahTatib,
+        wilayah_id: updatedItem.wilayahId || null,
         availability: updatedItem.availability,
         updated_at: new Date().toISOString()
       })
       .eq('id', updatedItem.id)
-      .select()
+      .select(`
+        *,
+        wilayah:wilayah_id (
+          id,
+          nama_wilayah
+        )
+      `)
       .single();
 
     if (error) throw error;
@@ -97,6 +121,8 @@ export async function PUT(request: Request) {
       namaKetua: data.nama_ketua,
       nomorTelepon: data.nomor_telepon,
       jumlahTatib: data.jumlah_tatib,
+      wilayahId: data.wilayah_id,
+      wilayah: data.wilayah,
       availability: data.availability
     };
 

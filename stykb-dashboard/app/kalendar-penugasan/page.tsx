@@ -725,6 +725,64 @@ export default function KalendarPenugasanPage() {
         return b.totalTatib - a.totalTatib;
       });
 
+      // STEP 3.5: Check if any single lingkungan can meet MIN_TATIB alone
+      // If yes, pick randomly from ALL available lingkungan (not restricted by wilayah)
+      const singleLingkunganCandidates: LingkunganData[] = [];
+
+      for (const group of wilayahTotals) {
+        for (const lingkungan of group.lingkungan) {
+          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+          if (tatib >= MIN_TATIB && tatib <= MAX_TATIB) {
+            singleLingkunganCandidates.push(lingkungan);
+          }
+        }
+      }
+
+      // If we have lingkungan that can meet MIN_TATIB alone, pick one randomly
+      if (singleLingkunganCandidates.length > 0) {
+        const shuffledCandidates = shuffleArray(
+          singleLingkunganCandidates,
+          monthSeed + currentDay
+        );
+        const selectedLingkungan = shuffledCandidates[0];
+        const tatib = parseInt(selectedLingkungan.jumlahTatib) || 0;
+
+        assigned.push({
+          name: selectedLingkungan.namaLingkungan,
+          tatib: tatib,
+        });
+
+        // Remove from unassigned pool
+        const poolIndex = unassignedPool.findIndex(
+          (l) => l.namaLingkungan === selectedLingkungan.namaLingkungan
+        );
+        if (poolIndex !== -1) {
+          unassignedPool.splice(poolIndex, 1);
+        }
+
+        // Track this assignment for the current week and day
+        if (!weeklyAssignments[currentWeek]) {
+          weeklyAssignments[currentWeek] = new Set<string>();
+        }
+        weeklyAssignments[currentWeek].add(selectedLingkungan.namaLingkungan);
+
+        if (!dailyAssignments[currentDay]) {
+          dailyAssignments[currentDay] = new Set<string>();
+        }
+        dailyAssignments[currentDay].add(selectedLingkungan.namaLingkungan);
+
+        return assigned;
+      }
+
+      // STEP 3.6: If no single lingkungan can meet MIN_TATIB, use wilayah grouping
+      // Shuffle lingkungan within each wilayah group for randomization
+      wilayahTotals.forEach((group) => {
+        group.lingkungan = shuffleArray(
+          group.lingkungan,
+          monthSeed + currentDay
+        );
+      });
+
       // STEP 4: Try to assign complete wilayah groups first
       for (const group of wilayahTotals) {
         if (totalTatib >= MIN_TATIB) break; // Already met minimum
