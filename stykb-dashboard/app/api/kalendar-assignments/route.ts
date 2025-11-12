@@ -52,6 +52,16 @@ export async function POST(request: NextRequest) {
     if (assignments.length > 0) {
       const { tahun, bulan } = assignments[0];
       console.log("🗑️  Deleting existing assignments for tahun:", tahun, "bulan:", bulan);
+      
+      // First, verify what exists
+      const { data: existingData } = await supabase
+        .from("kalendar_assignments")
+        .select("id")
+        .eq("tahun", tahun)
+        .eq("bulan", bulan);
+      
+      console.log(`📊 Found ${existingData?.length || 0} existing assignments to delete`);
+      
       const { error: deleteError } = await supabase
         .from("kalendar_assignments")
         .delete()
@@ -60,17 +70,47 @@ export async function POST(request: NextRequest) {
       
       if (deleteError) {
         console.error("❌ Delete failed:", deleteError);
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
       } else {
         console.log("✅ Delete successful");
+        
+        // Wait a bit to ensure delete is committed
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
+    // Remove duplicates from assignments array to prevent unique constraint violation
+    const uniqueAssignments = assignments.filter((assignment, index, self) => {
+      return index === self.findIndex((a) => (
+        a.tahun === assignment.tahun &&
+        a.bulan === assignment.bulan &&
+        a.tanggal === assignment.tanggal &&
+        a.gereja === assignment.gereja &&
+        a.waktu === assignment.waktu
+      ));
+    });
+
+    if (uniqueAssignments.length !== assignments.length) {
+      const duplicateCount = assignments.length - uniqueAssignments.length;
+      console.warn(`⚠️  Removed ${duplicateCount} duplicate assignments from input`);
+      
+      // Log some duplicate examples for debugging
+      const seen = new Set();
+      assignments.forEach((a, idx) => {
+        const key = `${a.tahun}-${a.bulan}-${a.tanggal}-${a.gereja}-${a.waktu}`;
+        if (seen.has(key)) {
+          console.warn(`   Duplicate at index ${idx}: ${key}`);
+        }
+        seen.add(key);
+      });
+    }
+
     // Insert new assignments
-    console.log("📝 Inserting", assignments.length, "new assignments");
+    console.log("📝 Inserting", uniqueAssignments.length, "new assignments");
     const { data, error } = await supabase
       .from("kalendar_assignments")
       .insert(
-        assignments.map((a) => ({
+        uniqueAssignments.map((a) => ({
           tahun: a.tahun,
           bulan: a.bulan,
           tanggal: a.tanggal,

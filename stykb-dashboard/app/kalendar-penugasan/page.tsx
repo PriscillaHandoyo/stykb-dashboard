@@ -126,16 +126,41 @@ export default function KalendarPenugasanPage() {
         needs_more: a.needsMore,
       }));
 
+      // Deduplicate before sending - prevent duplicate key errors
+      const uniqueData = dataToSave.filter((item, index, self) => {
+        return (
+          index ===
+          self.findIndex(
+            (t) =>
+              t.tahun === item.tahun &&
+              t.bulan === item.bulan &&
+              t.tanggal === item.tanggal &&
+              t.gereja === item.gereja &&
+              t.waktu === item.waktu
+          )
+        );
+      });
+
+      if (uniqueData.length !== dataToSave.length) {
+        console.warn(
+          `⚠️  Removed ${
+            dataToSave.length - uniqueData.length
+          } duplicates from generated data before saving`
+        );
+      }
+
       console.log(
         "📤 Sending to API: tahun =",
         selectedYear,
         ", bulan =",
-        selectedMonth
+        selectedMonth,
+        ", unique records =",
+        uniqueData.length
       );
       const response = await fetch("/api/kalendar-assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignments: dataToSave }),
+        body: JSON.stringify({ assignments: uniqueData }),
       });
 
       if (!response.ok) {
@@ -665,29 +690,61 @@ export default function KalendarPenugasanPage() {
 
     const usageCounts = await getGlobalUsageCounts();
 
+    // FIXED: Track assignments using GLOBAL 6-month count + current month additions
+    // This ensures true fairness across months: lingkungan with fewer assignments overall get priority
+    const currentMonthUsageCounts = new Map<string, number>();
+
+    // Initialize with GLOBAL counts from last 6 months (not 0!)
+    lingkunganData.forEach((ling) => {
+      const globalCount = usageCounts.get(ling.namaLingkungan) || 0;
+      currentMonthUsageCounts.set(ling.namaLingkungan, globalCount);
+    });
+
+    console.log("📊 Global usage counts loaded:");
+    const sortedCounts = Array.from(currentMonthUsageCounts.entries())
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 10);
+    sortedCounts.forEach(([name, count]) => {
+      console.log(`   ${name}: ${count}x`);
+    });
+
     // Don't filter out lingkungan globally - they should only be excluded on specific celebration dates
     // Use all available lingkungan for regular mass assignments
     const availableLingkungan = lingkunganData;
 
-    // Sort lingkungan by usage count (least used first), then shuffle within same usage count
-    const sortedByUsage = [...availableLingkungan].sort((a, b) => {
-      const countA = usageCounts.get(a.namaLingkungan) || 0;
-      const countB = usageCounts.get(b.namaLingkungan) || 0;
+    // Function to rebuild the pool with GLOBAL usage counts + current month - called after each assignment
+    // Priority order based on TOTAL assignments (6 months + current month):
+    // 1. Lingkungan with lowest total count (0x, then 1x, then 2x, etc.)
+    const rebuildPoolByUsage = (): LingkunganData[] => {
+      // Group by total usage count
+      const groupedByCount: { [count: number]: LingkunganData[] } = {};
 
-      // Primary sort: by usage count (ascending - least used first)
-      if (countA !== countB) {
-        return countA - countB;
+      availableLingkungan.forEach((ling) => {
+        const count = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
+        if (!groupedByCount[count]) {
+          groupedByCount[count] = [];
+        }
+        groupedByCount[count].push(ling);
+      });
+
+      // Sort groups by count (ascending: 0, 1, 2, 3...)
+      const sortedCounts = Object.keys(groupedByCount)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+      const sortedByUsage: LingkunganData[] = [];
+      for (const count of sortedCounts) {
+        const group = groupedByCount[count];
+        // Sort by name for consistency within same count
+        group.sort((a, b) => a.namaLingkungan.localeCompare(b.namaLingkungan));
+        sortedByUsage.push(...group);
       }
 
-      // Secondary sort: by name for consistency
-      return a.namaLingkungan.localeCompare(b.namaLingkungan);
-    });
+      return sortedByUsage;
+    };
 
-    // Shuffle within usage count groups to add variety
-    const shuffledLingkungan = shuffleArray(sortedByUsage, monthSeed);
-
-    // Create unassigned pool from the shuffled lingkungan (prioritized by least usage)
-    const unassignedPool = [...shuffledLingkungan];
+    // Initial pool build
+    let unassignedPool = rebuildPoolByUsage();
 
     // Track assignments per week to avoid assigning same lingkungan in consecutive weeks
     const weeklyAssignments: { [weekNum: number]: Set<string> } = {};
@@ -812,6 +869,7 @@ export default function KalendarPenugasanPage() {
 
       // PRIORITY 1: Check if any single lingkungan can meet MIN_TATIB alone (≥20 tatib)
       // This is the HIGHEST priority - prefer single lingkungan assignments
+      // IMPORTANT: Maintain strict usage count ordering (0x before 1x before 2x, etc.)
       const singleLingkunganCandidates: LingkunganData[] = [];
 
       for (const group of wilayahTotals) {
@@ -823,13 +881,23 @@ export default function KalendarPenugasanPage() {
         }
       }
 
-      // If we have lingkungan that can meet MIN_TATIB alone, pick one (Priority 1)
+      // If we have lingkungan that can meet MIN_TATIB alone, pick the one with LOWEST usage count
       if (singleLingkunganCandidates.length > 0) {
-        const shuffledCandidates = shuffleArray(
-          singleLingkunganCandidates,
-          monthSeed + currentDay
-        );
-        const selectedLingkungan = shuffledCandidates[0];
+        // Sort by usage count (ascending) to pick the least-used one - DO NOT shuffle here
+        singleLingkunganCandidates.sort((a, b) => {
+          const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
+          const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
+
+          // Primary: by usage count (least used first)
+          if (countA !== countB) {
+            return countA - countB;
+          }
+
+          // Secondary: by name for consistency when usage counts are equal
+          return a.namaLingkungan.localeCompare(b.namaLingkungan);
+        });
+
+        const selectedLingkungan = singleLingkunganCandidates[0]; // Pick the least-used
         const tatib = parseInt(selectedLingkungan.jumlahTatib) || 0;
 
         assigned.push({
@@ -837,13 +905,16 @@ export default function KalendarPenugasanPage() {
           tatib: tatib,
         });
 
-        // Remove from unassigned pool
-        const poolIndex = unassignedPool.findIndex(
-          (l) => l.namaLingkungan === selectedLingkungan.namaLingkungan
+        // Update current month usage count
+        const currentCount =
+          currentMonthUsageCounts.get(selectedLingkungan.namaLingkungan) || 0;
+        currentMonthUsageCounts.set(
+          selectedLingkungan.namaLingkungan,
+          currentCount + 1
         );
-        if (poolIndex !== -1) {
-          unassignedPool.splice(poolIndex, 1);
-        }
+
+        // Rebuild pool with updated usage counts for fair rotation
+        unassignedPool = rebuildPoolByUsage();
 
         // Track this assignment for the current week and day
         if (!weeklyAssignments[currentWeek]) {
@@ -861,12 +932,20 @@ export default function KalendarPenugasanPage() {
 
       // PRIORITY 2: If no single lingkungan can meet MIN_TATIB, use STRICT wilayah grouping
       // Multiple lingkungan MUST be from the SAME wilayah - NO MIXING
-      // Shuffle lingkungan within each wilayah group for randomization
+      // IMPORTANT: Sort within each wilayah group by usage count (least used first) instead of shuffling
       wilayahTotals.forEach((group) => {
-        group.lingkungan = shuffleArray(
-          group.lingkungan,
-          monthSeed + currentDay
-        );
+        group.lingkungan.sort((a, b) => {
+          const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
+          const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
+
+          // Primary: by usage count (least used first)
+          if (countA !== countB) {
+            return countA - countB;
+          }
+
+          // Secondary: by name for consistency
+          return a.namaLingkungan.localeCompare(b.namaLingkungan);
+        });
       });
 
       // Try to find a complete wilayah group that can meet MIN_TATIB
@@ -884,13 +963,13 @@ export default function KalendarPenugasanPage() {
               });
               totalTatib += tatib;
 
-              // Remove from unassigned pool
-              const poolIndex = unassignedPool.findIndex(
-                (l) => l.namaLingkungan === lingkungan.namaLingkungan
+              // Update current month usage count
+              const currentCount =
+                currentMonthUsageCounts.get(lingkungan.namaLingkungan) || 0;
+              currentMonthUsageCounts.set(
+                lingkungan.namaLingkungan,
+                currentCount + 1
               );
-              if (poolIndex !== -1) {
-                unassignedPool.splice(poolIndex, 1);
-              }
 
               // Track this assignment for the current week and day
               if (!weeklyAssignments[currentWeek]) {
@@ -909,6 +988,9 @@ export default function KalendarPenugasanPage() {
               }
             }
           }
+
+          // Rebuild pool with updated usage counts for fair rotation
+          unassignedPool = rebuildPoolByUsage();
 
           // Successfully assigned from this wilayah group - return immediately
           return assigned;
@@ -939,13 +1021,13 @@ export default function KalendarPenugasanPage() {
           });
           totalTatib += tatib;
 
-          // Remove from unassigned pool
-          const poolIndex = unassignedPool.findIndex(
-            (l) => l.namaLingkungan === lingkungan.namaLingkungan
+          // Update current month usage count
+          const currentCount =
+            currentMonthUsageCounts.get(lingkungan.namaLingkungan) || 0;
+          currentMonthUsageCounts.set(
+            lingkungan.namaLingkungan,
+            currentCount + 1
           );
-          if (poolIndex !== -1) {
-            unassignedPool.splice(poolIndex, 1);
-          }
 
           // Track this assignment for the current week and day
           if (!weeklyAssignments[currentWeek]) {
@@ -963,6 +1045,9 @@ export default function KalendarPenugasanPage() {
             break;
           }
         }
+
+        // Rebuild pool with updated usage counts for fair rotation
+        unassignedPool = rebuildPoolByUsage();
       }
 
       // If still no assignments (no available lingkungan at all), log warning
@@ -1500,6 +1585,26 @@ export default function KalendarPenugasanPage() {
               <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
             </svg>
             Kalendar Penugasan
+          </Link>
+          <Link
+            href="/cek-rotasi"
+            onClick={() => setIsSidebarOpen(false)}
+            className="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            Cek Rotasi
           </Link>
           <Link
             href="/paskah"
