@@ -51,14 +51,22 @@ export async function POST(request: NextRequest) {
     // Delete existing assignments for this month
     if (assignments.length > 0) {
       const { tahun, bulan } = assignments[0];
-      await supabase
+      console.log("🗑️  Deleting existing assignments for tahun:", tahun, "bulan:", bulan);
+      const { error: deleteError } = await supabase
         .from("kalendar_assignments")
         .delete()
         .eq("tahun", tahun)
         .eq("bulan", bulan);
+      
+      if (deleteError) {
+        console.error("❌ Delete failed:", deleteError);
+      } else {
+        console.log("✅ Delete successful");
+      }
     }
 
     // Insert new assignments
+    console.log("📝 Inserting", assignments.length, "new assignments");
     const { data, error } = await supabase
       .from("kalendar_assignments")
       .insert(

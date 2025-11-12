@@ -46,15 +46,63 @@ export default function FormLingkunganPage() {
     try {
       const response = await fetch("/api/wilayah");
       const data = await response.json();
-      setWilayahList(data || []);
+
+      // Check if the response is an error object
+      if (data.error) {
+        console.error("API error:", data.error);
+        setWilayahList([]);
+        setToast({
+          message:
+            "Gagal memuat data wilayah. Pastikan database schema sudah dijalankan.",
+          type: "error",
+        });
+      } else if (Array.isArray(data)) {
+        setWilayahList(data);
+      } else {
+        setWilayahList([]);
+      }
     } catch (error) {
       console.error("Error loading wilayah:", error);
+      setWilayahList([]);
       setToast({
         message: "Gagal memuat data wilayah",
         type: "error",
       });
     } finally {
       setLoadingWilayah(false);
+    }
+  };
+
+  const handleCreateWilayah = async (namaWilayah: string) => {
+    try {
+      const response = await fetch("/api/wilayah", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama_wilayah: namaWilayah }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Reload wilayah list and auto-select the new one
+        await loadWilayahList();
+        setFormData((prev) => ({ ...prev, wilayahId: data.id }));
+        setToast({
+          message: `Wilayah "${namaWilayah}" berhasil ditambahkan!`,
+          type: "success",
+        });
+      } else {
+        setToast({
+          message: data.error || "Gagal menambahkan wilayah",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating wilayah:", error);
+      setToast({
+        message: "Gagal menambahkan wilayah",
+        type: "error",
+      });
     }
   };
 
@@ -393,30 +441,47 @@ export default function FormLingkunganPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Wilayah <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.wilayahId}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        wilayahId: e.target.value
-                          ? parseInt(e.target.value)
-                          : "",
-                      }))
-                    }
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
-                    required
-                  >
-                    <option value="">Pilih Wilayah</option>
-                    {loadingWilayah ? (
-                      <option disabled>Loading wilayah...</option>
-                    ) : (
-                      wilayahList.map((wilayah) => (
-                        <option key={wilayah.id} value={wilayah.id}>
-                          {wilayah.nama_wilayah}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.wilayahId}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          wilayahId: e.target.value
+                            ? parseInt(e.target.value)
+                            : "",
+                        }))
+                      }
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                      required
+                    >
+                      <option value="">Pilih Wilayah</option>
+                      {loadingWilayah ? (
+                        <option disabled>Loading wilayah...</option>
+                      ) : (
+                        wilayahList.map((wilayah) => (
+                          <option key={wilayah.id} value={wilayah.id}>
+                            {wilayah.nama_wilayah}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const wilayahName = prompt(
+                          "Masukkan nama wilayah baru:"
+                        );
+                        if (wilayahName && wilayahName.trim()) {
+                          handleCreateWilayah(wilayahName.trim());
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                      title="Tambah wilayah baru"
+                    >
+                      + Baru
+                    </button>
+                  </div>
                   <p className="mt-1 text-xs text-gray-500">
                     Kelompok wilayah dari lingkungan ini
                   </p>

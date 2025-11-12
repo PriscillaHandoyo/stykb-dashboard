@@ -9,6 +9,11 @@ interface LingkunganData {
   namaKetua: string;
   nomorTelepon: string;
   jumlahTatib: string;
+  wilayahId?: number;
+  wilayah?: {
+    id: number;
+    nama_wilayah: string;
+  };
   availability: {
     [church: string]: {
       [day: string]: string[];
@@ -92,30 +97,91 @@ export default function KalendarPenugasanPage() {
   const [misaLainnyaAssignedLingkungan, setMisaLainnyaAssignedLingkungan] =
     useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [isManualMode, setIsManualMode] = useState(false); // Track if in manual assignment mode
+  const [saving, setSaving] = useState(false);
   const [editingSlot, setEditingSlot] = useState<{
     assignmentIndex: number;
     action: "add" | "edit";
   } | null>(null);
 
-  // LocalStorage helpers for persisting manual assignments
-  const saveAssignmentsToStorage = (assignments: Assignment[]) => {
-    const key = `kalendarAssignments-${selectedYear}-${selectedMonth + 1}`;
-    localStorage.setItem(key, JSON.stringify(assignments));
+  // Save assignments to Supabase
+  const saveAssignmentsToDatabase = async (assignments: Assignment[]) => {
+    try {
+      console.log(
+        "💾 saveAssignmentsToDatabase called with",
+        assignments.length,
+        "assignments"
+      );
+      const dataToSave = assignments.map((a) => ({
+        tahun: selectedYear,
+        bulan: selectedMonth, // Database uses 0-11 indexing like JavaScript
+        tanggal: a.date,
+        hari: a.day,
+        gereja: a.church,
+        waktu: a.time,
+        assigned_lingkungan: a.assignedLingkungan,
+        total_tatib: a.totalTatib,
+        needs_more: a.needsMore,
+      }));
+
+      console.log(
+        "📤 Sending to API: tahun =",
+        selectedYear,
+        ", bulan =",
+        selectedMonth
+      );
+      const response = await fetch("/api/kalendar-assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignments: dataToSave }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ Failed to save assignments to database:");
+        console.error("Error details:", JSON.stringify(errorData, null, 2));
+        console.error("Status:", response.status);
+      } else {
+        const result = await response.json();
+        console.log(
+          "✅ Successfully saved to database:",
+          result.length,
+          "records"
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error saving assignments:", error);
+    }
   };
 
-  const loadAssignmentsFromStorage = (): Assignment[] | null => {
-    const key = `kalendarAssignments-${selectedYear}-${selectedMonth + 1}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse saved assignments:", e);
-        return null;
-      }
+  // Load assignments from Supabase
+  const loadAssignmentsFromDatabase = async (): Promise<
+    Assignment[] | null
+  > => {
+    try {
+      const response = await fetch(
+        `/api/kalendar-assignments?tahun=${selectedYear}&bulan=${selectedMonth}` // Database uses 0-11 indexing
+      );
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+
+      if (!data || data.length === 0) return null;
+
+      // Transform database format to frontend format
+      return data.map((item: any) => ({
+        date: item.tanggal,
+        day: item.hari,
+        church: item.gereja,
+        time: item.waktu,
+        assignedLingkungan: item.assigned_lingkungan,
+        totalTatib: item.total_tatib,
+        needsMore: item.needs_more,
+      }));
+    } catch (error) {
+      console.error("Error loading assignments:", error);
+      return null;
     }
-    return null;
   };
 
   // Shuffle handler for individual lingkungan
@@ -200,7 +266,7 @@ export default function KalendarPenugasanPage() {
 
     updatedAssignments[assignmentIndex] = updatedAssignment;
     setAssignments(updatedAssignments);
-    saveAssignmentsToStorage(updatedAssignments);
+    saveAssignmentsToDatabase(updatedAssignments);
   };
 
   // Manual assignment handlers
@@ -249,8 +315,8 @@ export default function KalendarPenugasanPage() {
     setAssignments(updatedAssignments);
     setEditingSlot(null);
 
-    // Save to localStorage
-    saveAssignmentsToStorage(updatedAssignments);
+    // Save to database
+    saveAssignmentsToDatabase(updatedAssignments);
   };
 
   const handleRemoveLingkungan = (
@@ -290,16 +356,11 @@ export default function KalendarPenugasanPage() {
 
     updatedAssignments[assignmentIndex] = updatedAssignment;
     setAssignments(updatedAssignments);
-    saveAssignmentsToStorage(updatedAssignments);
+    saveAssignmentsToDatabase(updatedAssignments);
   };
 
   const toggleManualMode = () => {
-    if (!isManualMode && selectedYear === 2025 && selectedMonth === 10) {
-      // Switching to manual mode for November 2025
-      setIsManualMode(true);
-    } else {
-      setIsManualMode(false);
-    }
+    // Manual mode removed - editing is always available
   };
 
   // Min Tatib Configuration
@@ -337,22 +398,21 @@ export default function KalendarPenugasanPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-  // Load min tatib config from localStorage on mount
+  // Load min tatib config from database on mount
   useEffect(() => {
-    const savedConfig = localStorage.getItem("minTatibConfig");
-    if (savedConfig) {
+    const loadMinTatibConfig = async () => {
       try {
-        setMinTatibConfig(JSON.parse(savedConfig));
+        const response = await fetch("/api/min-tatib-config");
+        if (response.ok) {
+          const config = await response.json();
+          setMinTatibConfig(config);
+        }
       } catch (error) {
         console.error("Error loading min tatib config:", error);
       }
-    }
+    };
+    loadMinTatibConfig();
   }, []);
-
-  // Save min tatib config to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("minTatibConfig", JSON.stringify(minTatibConfig));
-  }, [minTatibConfig]);
 
   useEffect(() => {
     loadLingkunganData();
@@ -365,15 +425,16 @@ export default function KalendarPenugasanPage() {
 
   useEffect(() => {
     if (lingkunganData.length > 0) {
-      // First try to load saved assignments for this month
-      const savedAssignments = loadAssignmentsFromStorage();
-      if (savedAssignments && savedAssignments.length > 0) {
-        // Use saved assignments
-        setAssignments(savedAssignments);
-      } else {
-        // Generate new assignments if no saved data
-        generateAssignments();
-      }
+      // Load assignments from database or generate new ones
+      loadAssignmentsFromDatabase().then((savedAssignments) => {
+        if (savedAssignments && savedAssignments.length > 0) {
+          // Use saved assignments
+          setAssignments(savedAssignments);
+        } else {
+          // Generate new assignments if no saved data
+          generateAssignments();
+        }
+      });
     }
   }, [
     selectedYear,
@@ -387,6 +448,7 @@ export default function KalendarPenugasanPage() {
     try {
       const response = await fetch("/api/lingkungan");
       const data = await response.json();
+      console.log("📊 Loaded lingkungan data:", data.length, "lingkungan");
       setLingkunganData(data);
       setLoading(false);
     } catch (error) {
@@ -530,15 +592,25 @@ export default function KalendarPenugasanPage() {
     return shuffled;
   };
 
-  const generateAssignments = () => {
+  const generateAssignments = async () => {
+    console.log(
+      "🔄 Starting generateAssignments for",
+      selectedYear,
+      "month",
+      selectedMonth,
+      "(DB bulan:",
+      selectedMonth + 1,
+      ")"
+    );
     const assignments: Assignment[] = [];
     const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    console.log("📅 Days in month:", daysInMonth);
 
     // Create a unique seed for this month to ensure consistent but different shuffling per month
     const monthSeed = selectedYear * 12 + selectedMonth;
 
-    // Global rotation system: track usage counts across all months
-    const getGlobalUsageCounts = (): Map<string, number> => {
+    // Global rotation system: track usage counts across all months from database
+    const getGlobalUsageCounts = async (): Promise<Map<string, number>> => {
       const usageCounts = new Map<string, number>();
 
       // Initialize all lingkungan with 0 count
@@ -546,8 +618,7 @@ export default function KalendarPenugasanPage() {
         usageCounts.set(ling.namaLingkungan, 0);
       });
 
-      // Scan through all saved months and count how many times each lingkungan was assigned
-      // We'll check last 6 months to get a reasonable window
+      // Scan through last 6 months from database to count assignments
       for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
         let checkYear = selectedYear;
         let checkMonth = selectedMonth - monthOffset;
@@ -557,28 +628,39 @@ export default function KalendarPenugasanPage() {
           checkYear -= 1;
         }
 
-        const storageKey = `kalendarAssignments-${checkYear}-${checkMonth + 1}`;
-        const stored = localStorage.getItem(storageKey);
-
-        if (stored) {
-          try {
-            const savedAssignments = JSON.parse(stored) as Assignment[];
-            savedAssignments.forEach((assignment) => {
-              assignment.assignedLingkungan.forEach((ling) => {
-                const currentCount = usageCounts.get(ling.name) || 0;
-                usageCounts.set(ling.name, currentCount + 1);
+        try {
+          const response = await fetch(
+            `/api/kalendar-assignments?tahun=${checkYear}&bulan=${checkMonth}` // Database uses 0-11 indexing
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.assignments && Array.isArray(data.assignments)) {
+              data.assignments.forEach((assignment: any) => {
+                if (
+                  assignment.assigned_lingkungan &&
+                  Array.isArray(assignment.assigned_lingkungan)
+                ) {
+                  assignment.assigned_lingkungan.forEach((ling: any) => {
+                    const currentCount = usageCounts.get(ling.name) || 0;
+                    usageCounts.set(ling.name, currentCount + 1);
+                  });
+                }
               });
-            });
-          } catch {
-            // Skip invalid data
+            }
           }
+        } catch (error) {
+          console.error(
+            `Error loading assignments for ${checkYear}-${checkMonth + 1}:`,
+            error
+          );
+          // Skip this month if there's an error
         }
       }
 
       return usageCounts;
     };
 
-    const usageCounts = getGlobalUsageCounts();
+    const usageCounts = await getGlobalUsageCounts();
 
     // Don't filter out lingkungan globally - they should only be excluded on specific celebration dates
     // Use all available lingkungan for regular mass assignments
@@ -725,8 +807,8 @@ export default function KalendarPenugasanPage() {
         return b.totalTatib - a.totalTatib;
       });
 
-      // STEP 3.5: Check if any single lingkungan can meet MIN_TATIB alone
-      // If yes, pick randomly from ALL available lingkungan (not restricted by wilayah)
+      // PRIORITY 1: Check if any single lingkungan can meet MIN_TATIB alone (≥20 tatib)
+      // This is the HIGHEST priority - prefer single lingkungan assignments
       const singleLingkunganCandidates: LingkunganData[] = [];
 
       for (const group of wilayahTotals) {
@@ -738,7 +820,7 @@ export default function KalendarPenugasanPage() {
         }
       }
 
-      // If we have lingkungan that can meet MIN_TATIB alone, pick one randomly
+      // If we have lingkungan that can meet MIN_TATIB alone, pick one (Priority 1)
       if (singleLingkunganCandidates.length > 0) {
         const shuffledCandidates = shuffleArray(
           singleLingkunganCandidates,
@@ -774,7 +856,8 @@ export default function KalendarPenugasanPage() {
         return assigned;
       }
 
-      // STEP 3.6: If no single lingkungan can meet MIN_TATIB, use wilayah grouping
+      // PRIORITY 2: If no single lingkungan can meet MIN_TATIB, use STRICT wilayah grouping
+      // Multiple lingkungan MUST be from the SAME wilayah - NO MIXING
       // Shuffle lingkungan within each wilayah group for randomization
       wilayahTotals.forEach((group) => {
         group.lingkungan = shuffleArray(
@@ -783,38 +866,75 @@ export default function KalendarPenugasanPage() {
         );
       });
 
-      // STEP 4: Try to assign complete wilayah groups first
+      // Try to find a complete wilayah group that can meet MIN_TATIB
       for (const group of wilayahTotals) {
-        if (totalTatib >= MIN_TATIB) break; // Already met minimum
+        if (group.totalTatib >= MIN_TATIB) {
+          // This wilayah group has enough tatib - assign ALL needed lingkungan from this group
+          for (const lingkungan of group.lingkungan) {
+            const tatib = parseInt(lingkungan.jumlahTatib) || 0;
 
-        // If we already started assigning, only continue with the same wilayah
-        if (assigned.length > 0) {
-          // Check if this group is from the same wilayah as already assigned
-          const currentWilayah = getWilayah(assigned[0].name);
-          if (group.wilayah !== currentWilayah) {
-            continue; // Skip this group, stick with current wilayah
-          }
-        }
+            // Add this lingkungan if we haven't met MIN_TATIB yet or if under MAX_TATIB
+            if (totalTatib < MIN_TATIB || totalTatib + tatib <= MAX_TATIB) {
+              assigned.push({
+                name: lingkungan.namaLingkungan,
+                tatib: tatib,
+              });
+              totalTatib += tatib;
 
-        // Try to use this wilayah group - assign ALL lingkungan from this group needed to meet MIN_TATIB
-        let groupAssigned = false;
-        for (const lingkungan of group.lingkungan) {
-          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+              // Remove from unassigned pool
+              const poolIndex = unassignedPool.findIndex(
+                (l) => l.namaLingkungan === lingkungan.namaLingkungan
+              );
+              if (poolIndex !== -1) {
+                unassignedPool.splice(poolIndex, 1);
+              }
 
-          // Check if adding this would exceed MAX_TATIB
-          if (totalTatib + tatib > MAX_TATIB) {
-            // Only skip if we've already met MIN_TATIB, otherwise keep trying to meet minimum
-            if (totalTatib >= MIN_TATIB) {
-              continue;
+              // Track this assignment for the current week and day
+              if (!weeklyAssignments[currentWeek]) {
+                weeklyAssignments[currentWeek] = new Set<string>();
+              }
+              weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
+
+              if (!dailyAssignments[currentDay]) {
+                dailyAssignments[currentDay] = new Set<string>();
+              }
+              dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
+
+              // Stop if we've met MIN_TATIB and would exceed MAX_TATIB with more
+              if (totalTatib >= MIN_TATIB) {
+                break;
+              }
             }
           }
+
+          // Successfully assigned from this wilayah group - return immediately
+          return assigned;
+        }
+      }
+
+      // If NO wilayah group has enough tatib on its own, assign the best available group
+      // even if it doesn't meet MIN_TATIB (will be marked as needsMore)
+      if (wilayahTotals.length > 0 && assigned.length === 0) {
+        console.log(
+          "⚠️  No wilayah group meets MIN_TATIB, using best available group"
+        );
+        const bestGroup = wilayahTotals[0]; // Already sorted by total tatib
+        console.log(
+          "📋 Best group:",
+          bestGroup.wilayah,
+          "with",
+          bestGroup.totalTatib,
+          "tatib"
+        );
+
+        for (const lingkungan of bestGroup.lingkungan) {
+          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
 
           assigned.push({
             name: lingkungan.namaLingkungan,
             tatib: tatib,
           });
           totalTatib += tatib;
-          groupAssigned = true;
 
           // Remove from unassigned pool
           const poolIndex = unassignedPool.findIndex(
@@ -835,16 +955,20 @@ export default function KalendarPenugasanPage() {
           }
           dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
 
-          // If we've met MIN_TATIB and would exceed MAX_TATIB with next one, stop
-          if (totalTatib >= MIN_TATIB) {
+          // Stop when we would exceed MAX_TATIB (even if under MIN_TATIB)
+          if (totalTatib + 10 > MAX_TATIB) {
             break;
           }
         }
+      }
 
-        // If we've assigned from this wilayah group, stop (don't mix wilayahs)
-        if (groupAssigned) {
-          break;
-        }
+      // If still no assignments (no available lingkungan at all), log warning
+      if (assigned.length === 0) {
+        console.warn(
+          `⚠️  No lingkungan available for ${church} ${day} ${time} on day ${currentDay}`
+        );
+        console.warn(`   Available wilayah groups:`, wilayahTotals.length);
+        console.warn(`   Unassigned pool size:`, unassignedPool.length);
       }
 
       return assigned;
@@ -1119,8 +1243,32 @@ export default function KalendarPenugasanPage() {
 
     consolidateWilayahOnSameDate();
 
+    console.log("✅ Generated", assignments.length, "assignments");
+
+    // Check for duplicates before saving
+    const uniqueKeys = new Set();
+    const duplicates: any[] = [];
+    assignments.forEach((a, idx) => {
+      const key = `${a.date}_${a.church}_${a.time}`;
+      if (uniqueKeys.has(key)) {
+        duplicates.push({ index: idx, key, assignment: a });
+      }
+      uniqueKeys.add(key);
+    });
+
+    if (duplicates.length > 0) {
+      console.error("⚠️  Found duplicate assignments:", duplicates);
+    } else {
+      console.log("✅ No duplicate assignments found");
+    }
+
     setAssignments(assignments);
-    saveAssignmentsToStorage(assignments);
+
+    // Save to database (async, but don't block UI)
+    console.log("💾 Saving assignments to database...");
+    saveAssignmentsToDatabase(assignments).catch((err) =>
+      console.error("Error saving assignments in background:", err)
+    );
   };
 
   const groupByDate = () => {
@@ -1373,23 +1521,6 @@ export default function KalendarPenugasanPage() {
                   &nbsp;
                 </label>
                 <div className="flex gap-2">
-                  {selectedYear === 2025 && selectedMonth === 10 && (
-                    <button
-                      onClick={toggleManualMode}
-                      className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg transition-colors text-sm sm:text-base ${
-                        isManualMode
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "bg-gray-300 text-gray-700 hover:bg-gray-400"
-                      }`}
-                      title={
-                        isManualMode
-                          ? "Mode Manual Aktif - Klik untuk kembali ke mode otomatis"
-                          : "Aktifkan Mode Manual untuk November"
-                      }
-                    >
-                      {isManualMode ? "✓ Manual" : "Manual"}
-                    </button>
-                  )}
                   <button
                     onClick={() => setShowMinTatibConfig(true)}
                     className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
@@ -1426,9 +1557,9 @@ export default function KalendarPenugasanPage() {
                     🔄 Generate
                   </button>
                   <button
-                    onClick={() => {
-                      // Save current assignments (including manual edits and swaps) to localStorage
-                      saveAssignmentsToStorage(assignments);
+                    onClick={async () => {
+                      // Save current assignments (including manual edits and swaps) to database
+                      await saveAssignmentsToDatabase(assignments);
 
                       alert(
                         `Jadwal telah tersimpan untuk ${new Date(
@@ -1441,7 +1572,7 @@ export default function KalendarPenugasanPage() {
                       );
                     }}
                     className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
-                    title="Simpan jadwal saat ini (termasuk perubahan manual) ke localStorage"
+                    title="Simpan jadwal saat ini (termasuk perubahan manual) ke database"
                   >
                     💾 Simpan
                   </button>
@@ -1628,8 +1759,381 @@ export default function KalendarPenugasanPage() {
                                   <td className="border border-gray-200 py-3 px-4 text-sm">
                                     {assignment.assignedLingkungan.length ===
                                     0 ? (
-                                      isManualMode ? (
-                                        (() => {
+                                      (() => {
+                                        const assignmentIndex =
+                                          assignments.findIndex(
+                                            (a) =>
+                                              a.date === assignment.date &&
+                                              a.church === assignment.church &&
+                                              a.time === assignment.time
+                                          );
+
+                                        const allAssignedNames = new Set(
+                                          assignments.flatMap((a) =>
+                                            a.assignedLingkungan.map(
+                                              (l) => l.name
+                                            )
+                                          )
+                                        );
+
+                                        const normalizedChurch =
+                                          assignment.church.includes("Yakobus")
+                                            ? "St. Yakobus"
+                                            : "Pegangsaan 2";
+
+                                        const availableLingkungan =
+                                          lingkunganData.filter((ling) => {
+                                            if (
+                                              allAssignedNames.has(
+                                                ling.namaLingkungan
+                                              )
+                                            )
+                                              return false;
+
+                                            const availability =
+                                              ling.availability[
+                                                normalizedChurch
+                                              ];
+                                            if (!availability) return false;
+
+                                            const daySchedule =
+                                              assignment.day === "Minggu"
+                                                ? availability.Minggu
+                                                : availability.Sabtu;
+                                            if (
+                                              !daySchedule ||
+                                              !daySchedule.includes(
+                                                assignment.time
+                                              )
+                                            )
+                                              return false;
+
+                                            return true;
+                                          });
+
+                                        return (
+                                          <select
+                                            onChange={(e) => {
+                                              if (e.target.value) {
+                                                handleAddLingkungan(
+                                                  assignmentIndex,
+                                                  e.target.value
+                                                );
+                                                e.target.value = "";
+                                              }
+                                            }}
+                                            className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          >
+                                            <option value="">
+                                              + Tambah Lingkungan
+                                            </option>
+                                            {availableLingkungan.map(
+                                              (ling, lingIndex) => (
+                                                <option
+                                                  key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
+                                                  value={ling.namaLingkungan}
+                                                >
+                                                  {ling.namaLingkungan} (
+                                                  {ling.jumlahTatib} tatib)
+                                                </option>
+                                              )
+                                            )}
+                                          </select>
+                                        );
+                                      })()
+                                    ) : (
+                                      <div className="space-y-1">
+                                        {assignment.assignedLingkungan.map(
+                                          (ling, idx) => {
+                                            // Find the actual index in the assignments array
+                                            const assignmentIndex =
+                                              assignments.findIndex(
+                                                (a) =>
+                                                  a.date === assignment.date &&
+                                                  a.church ===
+                                                    assignment.church &&
+                                                  a.time === assignment.time
+                                              );
+
+                                            return (
+                                              <div
+                                                key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.name}-${idx}`}
+                                                className="flex items-center justify-between gap-2 text-gray-900 group"
+                                              >
+                                                <div>
+                                                  {ling.name}
+                                                  <span className="text-xs text-gray-500 ml-2">
+                                                    ({ling.tatib} tatib)
+                                                  </span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                  <button
+                                                    onClick={() =>
+                                                      handleRemoveLingkungan(
+                                                        assignmentIndex,
+                                                        idx
+                                                      )
+                                                    }
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                                                    title="Hapus lingkungan ini"
+                                                  >
+                                                    <svg
+                                                      className="w-4 h-4 text-red-600"
+                                                      fill="none"
+                                                      stroke="currentColor"
+                                                      viewBox="0 0 24 24"
+                                                    >
+                                                      <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M6 18L18 6M6 6l12 12"
+                                                      />
+                                                    </svg>
+                                                  </button>
+                                                  <select
+                                                    value=""
+                                                    onChange={(e) => {
+                                                      if (e.target.value) {
+                                                        // Find the target assignment that has the selected lingkungan
+                                                        const targetLingkunganName =
+                                                          e.target.value;
+                                                        let targetAssignmentIndex =
+                                                          -1;
+                                                        let targetLingkunganIndex =
+                                                          -1;
+
+                                                        assignments.forEach(
+                                                          (a, aIdx) => {
+                                                            a.assignedLingkungan.forEach(
+                                                              (l, lIdx) => {
+                                                                if (
+                                                                  l.name ===
+                                                                  targetLingkunganName
+                                                                ) {
+                                                                  targetAssignmentIndex =
+                                                                    aIdx;
+                                                                  targetLingkunganIndex =
+                                                                    lIdx;
+                                                                }
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+
+                                                        if (
+                                                          targetAssignmentIndex !==
+                                                          -1
+                                                        ) {
+                                                          // Swap the two lingkungan
+                                                          const updatedAssignments =
+                                                            [...assignments];
+                                                          const currentLingkungan =
+                                                            updatedAssignments[
+                                                              assignmentIndex
+                                                            ]
+                                                              .assignedLingkungan[
+                                                              idx
+                                                            ];
+                                                          const targetLingkungan =
+                                                            updatedAssignments[
+                                                              targetAssignmentIndex
+                                                            ]
+                                                              .assignedLingkungan[
+                                                              targetLingkunganIndex
+                                                            ];
+
+                                                          updatedAssignments[
+                                                            assignmentIndex
+                                                          ].assignedLingkungan[
+                                                            idx
+                                                          ] = targetLingkungan;
+                                                          updatedAssignments[
+                                                            targetAssignmentIndex
+                                                          ].assignedLingkungan[
+                                                            targetLingkunganIndex
+                                                          ] = currentLingkungan;
+
+                                                          // Recalculate totals
+                                                          updatedAssignments[
+                                                            assignmentIndex
+                                                          ].totalTatib =
+                                                            updatedAssignments[
+                                                              assignmentIndex
+                                                            ].assignedLingkungan.reduce(
+                                                              (sum, l) =>
+                                                                sum + l.tatib,
+                                                              0
+                                                            );
+                                                          updatedAssignments[
+                                                            targetAssignmentIndex
+                                                          ].totalTatib =
+                                                            updatedAssignments[
+                                                              targetAssignmentIndex
+                                                            ].assignedLingkungan.reduce(
+                                                              (sum, l) =>
+                                                                sum + l.tatib,
+                                                              0
+                                                            );
+
+                                                          setAssignments(
+                                                            updatedAssignments
+                                                          );
+                                                          saveAssignmentsToDatabase(
+                                                            updatedAssignments
+                                                          );
+                                                        }
+                                                      }
+                                                    }}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                                                    title="Tukar dengan lingkungan lain"
+                                                  >
+                                                    <option value="">
+                                                      ✏️ Tukar
+                                                    </option>
+                                                    {(() => {
+                                                      // Get current slot details for availability checking
+                                                      const currentChurch =
+                                                        assignment.church.includes(
+                                                          "Yakobus"
+                                                        )
+                                                          ? "St. Yakobus"
+                                                          : "Pegangsaan 2";
+                                                      const currentDay =
+                                                        assignment.day;
+                                                      const currentTime =
+                                                        assignment.time;
+
+                                                      // Get all assigned lingkungan with availability check
+                                                      const swappableLingkungan: Array<{
+                                                        name: string;
+                                                        assignment: string;
+                                                        assignmentIndex: number;
+                                                        church: string;
+                                                        day: string;
+                                                        time: string;
+                                                      }> = [];
+
+                                                      assignments.forEach(
+                                                        (a, aIdx) => {
+                                                          a.assignedLingkungan.forEach(
+                                                            (l) => {
+                                                              if (
+                                                                l.name !==
+                                                                ling.name
+                                                              ) {
+                                                                // Find lingkungan data for availability check
+                                                                const targetLingData =
+                                                                  lingkunganData.find(
+                                                                    (ld) =>
+                                                                      ld.namaLingkungan ===
+                                                                      l.name
+                                                                  );
+                                                                const currentLingData =
+                                                                  lingkunganData.find(
+                                                                    (ld) =>
+                                                                      ld.namaLingkungan ===
+                                                                      ling.name
+                                                                  );
+
+                                                                if (
+                                                                  !targetLingData ||
+                                                                  !currentLingData
+                                                                )
+                                                                  return;
+
+                                                                // Check if target lingkungan has availability for CURRENT slot
+                                                                const targetAvailForCurrent =
+                                                                  targetLingData
+                                                                    .availability[
+                                                                    currentChurch
+                                                                  ];
+                                                                if (
+                                                                  !targetAvailForCurrent
+                                                                )
+                                                                  return;
+
+                                                                const targetDaySchedule =
+                                                                  currentDay ===
+                                                                  "Minggu"
+                                                                    ? targetAvailForCurrent.Minggu
+                                                                    : targetAvailForCurrent.Sabtu;
+                                                                if (
+                                                                  !targetDaySchedule ||
+                                                                  !targetDaySchedule.includes(
+                                                                    currentTime
+                                                                  )
+                                                                )
+                                                                  return;
+
+                                                                // Check if current lingkungan has availability for TARGET slot
+                                                                const targetChurch =
+                                                                  a.church.includes(
+                                                                    "Yakobus"
+                                                                  )
+                                                                    ? "St. Yakobus"
+                                                                    : "Pegangsaan 2";
+                                                                const currentAvailForTarget =
+                                                                  currentLingData
+                                                                    .availability[
+                                                                    targetChurch
+                                                                  ];
+                                                                if (
+                                                                  !currentAvailForTarget
+                                                                )
+                                                                  return;
+
+                                                                const currentDaySchedule =
+                                                                  a.day ===
+                                                                  "Minggu"
+                                                                    ? currentAvailForTarget.Minggu
+                                                                    : currentAvailForTarget.Sabtu;
+                                                                if (
+                                                                  !currentDaySchedule ||
+                                                                  !currentDaySchedule.includes(
+                                                                    a.time
+                                                                  )
+                                                                )
+                                                                  return;
+
+                                                                // Both lingkungan can swap - add to list
+                                                                swappableLingkungan.push(
+                                                                  {
+                                                                    name: l.name,
+                                                                    assignment: `${a.date} ${a.church} ${a.time}`,
+                                                                    assignmentIndex:
+                                                                      aIdx,
+                                                                    church:
+                                                                      a.church,
+                                                                    day: a.day,
+                                                                    time: a.time,
+                                                                  }
+                                                                );
+                                                              }
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+
+                                                      return swappableLingkungan.map(
+                                                        (item, i) => (
+                                                          <option
+                                                            key={i}
+                                                            value={item.name}
+                                                          >
+                                                            {item.name} (
+                                                            {item.assignment})
+                                                          </option>
+                                                        )
+                                                      );
+                                                    })()}
+                                                  </select>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                        )}
+                                        {(() => {
                                           const assignmentIndex =
                                             assignments.findIndex(
                                               (a) =>
@@ -1639,6 +2143,7 @@ export default function KalendarPenugasanPage() {
                                                 a.time === assignment.time
                                             );
 
+                                          // Get all assigned lingkungan in this month
                                           const allAssignedNames = new Set(
                                             assignments.flatMap((a) =>
                                               a.assignedLingkungan.map(
@@ -1647,6 +2152,7 @@ export default function KalendarPenugasanPage() {
                                             )
                                           );
 
+                                          // Get available lingkungan for this slot
                                           const normalizedChurch =
                                             assignment.church.includes(
                                               "Yakobus"
@@ -1685,353 +2191,39 @@ export default function KalendarPenugasanPage() {
                                             });
 
                                           return (
-                                            <select
-                                              onChange={(e) => {
-                                                if (e.target.value) {
-                                                  handleAddLingkungan(
-                                                    assignmentIndex,
-                                                    e.target.value
-                                                  );
-                                                  e.target.value = "";
-                                                }
-                                              }}
-                                              className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            >
-                                              <option value="">
-                                                + Tambah Lingkungan
-                                              </option>
-                                              {availableLingkungan.map(
-                                                (ling, lingIndex) => (
-                                                  <option
-                                                    key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
-                                                    value={ling.namaLingkungan}
-                                                  >
-                                                    {ling.namaLingkungan} (
-                                                    {ling.jumlahTatib} tatib)
-                                                  </option>
-                                                )
-                                              )}
-                                            </select>
-                                          );
-                                        })()
-                                      ) : (
-                                        <div className="flex items-center gap-2">
-                                          <svg
-                                            className="w-4 h-4 text-orange-500"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                              clipRule="evenodd"
-                                            />
-                                          </svg>
-                                          <span className="text-orange-600 font-medium text-sm">
-                                            Lingkungan Kurang
-                                          </span>
-                                          {paskahAssignedLingkungan.size >
-                                            0 && (
-                                            <span className="text-xs text-gray-500">
-                                              (Beberapa lingkungan sudah
-                                              bertugas di Paskah)
-                                            </span>
-                                          )}
-                                        </div>
-                                      )
-                                    ) : (
-                                      <div className="space-y-1">
-                                        {assignment.assignedLingkungan.map(
-                                          (ling, idx) => {
-                                            // Find the actual index in the assignments array
-                                            const assignmentIndex =
-                                              assignments.findIndex(
-                                                (a) =>
-                                                  a.date === assignment.date &&
-                                                  a.church ===
-                                                    assignment.church &&
-                                                  a.time === assignment.time
-                                              );
-
-                                            return (
-                                              <div
-                                                key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.name}-${idx}`}
-                                                className="flex items-center justify-between gap-2 text-gray-900 group"
+                                            <div className="mt-2">
+                                              <select
+                                                onChange={(e) => {
+                                                  if (e.target.value) {
+                                                    handleAddLingkungan(
+                                                      assignmentIndex,
+                                                      e.target.value
+                                                    );
+                                                    e.target.value = "";
+                                                  }
+                                                }}
+                                                className="w-full text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                               >
-                                                <div>
-                                                  {ling.name}
-                                                  <span className="text-xs text-gray-500 ml-2">
-                                                    ({ling.tatib} tatib)
-                                                  </span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                  {isManualMode && (
-                                                    <button
-                                                      onClick={() =>
-                                                        handleRemoveLingkungan(
-                                                          assignmentIndex,
-                                                          idx
-                                                        )
+                                                <option value="">
+                                                  + Tambah Lingkungan
+                                                </option>
+                                                {availableLingkungan.map(
+                                                  (ling, lingIndex) => (
+                                                    <option
+                                                      key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
+                                                      value={
+                                                        ling.namaLingkungan
                                                       }
-                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
-                                                      title="Hapus lingkungan ini"
                                                     >
-                                                      <svg
-                                                        className="w-4 h-4 text-red-600"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                      >
-                                                        <path
-                                                          strokeLinecap="round"
-                                                          strokeLinejoin="round"
-                                                          strokeWidth={2}
-                                                          d="M6 18L18 6M6 6l12 12"
-                                                        />
-                                                      </svg>
-                                                    </button>
-                                                  )}
-                                                  {!isManualMode && (
-                                                    <select
-                                                      value=""
-                                                      onChange={(e) => {
-                                                        if (e.target.value) {
-                                                          // Find the target assignment that has the selected lingkungan
-                                                          const targetLingkunganName =
-                                                            e.target.value;
-                                                          let targetAssignmentIndex =
-                                                            -1;
-                                                          let targetLingkunganIndex =
-                                                            -1;
-
-                                                          assignments.forEach(
-                                                            (a, aIdx) => {
-                                                              a.assignedLingkungan.forEach(
-                                                                (l, lIdx) => {
-                                                                  if (
-                                                                    l.name ===
-                                                                    targetLingkunganName
-                                                                  ) {
-                                                                    targetAssignmentIndex =
-                                                                      aIdx;
-                                                                    targetLingkunganIndex =
-                                                                      lIdx;
-                                                                  }
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-
-                                                          if (
-                                                            targetAssignmentIndex !==
-                                                            -1
-                                                          ) {
-                                                            // Swap the two lingkungan
-                                                            const updatedAssignments =
-                                                              [...assignments];
-                                                            const currentLingkungan =
-                                                              updatedAssignments[
-                                                                assignmentIndex
-                                                              ]
-                                                                .assignedLingkungan[
-                                                                idx
-                                                              ];
-                                                            const targetLingkungan =
-                                                              updatedAssignments[
-                                                                targetAssignmentIndex
-                                                              ]
-                                                                .assignedLingkungan[
-                                                                targetLingkunganIndex
-                                                              ];
-
-                                                            updatedAssignments[
-                                                              assignmentIndex
-                                                            ].assignedLingkungan[
-                                                              idx
-                                                            ] =
-                                                              targetLingkungan;
-                                                            updatedAssignments[
-                                                              targetAssignmentIndex
-                                                            ].assignedLingkungan[
-                                                              targetLingkunganIndex
-                                                            ] =
-                                                              currentLingkungan;
-
-                                                            // Recalculate totals
-                                                            updatedAssignments[
-                                                              assignmentIndex
-                                                            ].totalTatib =
-                                                              updatedAssignments[
-                                                                assignmentIndex
-                                                              ].assignedLingkungan.reduce(
-                                                                (sum, l) =>
-                                                                  sum + l.tatib,
-                                                                0
-                                                              );
-                                                            updatedAssignments[
-                                                              targetAssignmentIndex
-                                                            ].totalTatib =
-                                                              updatedAssignments[
-                                                                targetAssignmentIndex
-                                                              ].assignedLingkungan.reduce(
-                                                                (sum, l) =>
-                                                                  sum + l.tatib,
-                                                                0
-                                                              );
-
-                                                            setAssignments(
-                                                              updatedAssignments
-                                                            );
-                                                            saveAssignmentsToStorage(
-                                                              updatedAssignments
-                                                            );
-                                                          }
-                                                        }
-                                                      }}
-                                                      className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
-                                                      title="Tukar dengan lingkungan lain"
-                                                    >
-                                                      <option value="">
-                                                        ✏️ Tukar
-                                                      </option>
-                                                      {(() => {
-                                                        // Get all assigned lingkungan in this month except the current one
-                                                        const allAssignedLingkungan: Array<{
-                                                          name: string;
-                                                          assignment: string;
-                                                        }> = [];
-                                                        assignments.forEach(
-                                                          (a) => {
-                                                            a.assignedLingkungan.forEach(
-                                                              (l) => {
-                                                                if (
-                                                                  l.name !==
-                                                                  ling.name
-                                                                ) {
-                                                                  allAssignedLingkungan.push(
-                                                                    {
-                                                                      name: l.name,
-                                                                      assignment: `${a.date} ${a.church} ${a.time}`,
-                                                                    }
-                                                                  );
-                                                                }
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-
-                                                        return allAssignedLingkungan.map(
-                                                          (item, i) => (
-                                                            <option
-                                                              key={i}
-                                                              value={item.name}
-                                                            >
-                                                              {item.name} (
-                                                              {item.assignment})
-                                                            </option>
-                                                          )
-                                                        );
-                                                      })()}
-                                                    </select>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            );
-                                          }
-                                        )}
-                                        {isManualMode &&
-                                          (() => {
-                                            const assignmentIndex =
-                                              assignments.findIndex(
-                                                (a) =>
-                                                  a.date === assignment.date &&
-                                                  a.church ===
-                                                    assignment.church &&
-                                                  a.time === assignment.time
-                                              );
-
-                                            // Get all assigned lingkungan in this month
-                                            const allAssignedNames = new Set(
-                                              assignments.flatMap((a) =>
-                                                a.assignedLingkungan.map(
-                                                  (l) => l.name
-                                                )
-                                              )
-                                            );
-
-                                            // Get available lingkungan for this slot
-                                            const normalizedChurch =
-                                              assignment.church.includes(
-                                                "Yakobus"
-                                              )
-                                                ? "St. Yakobus"
-                                                : "Pegangsaan 2";
-
-                                            const availableLingkungan =
-                                              lingkunganData.filter((ling) => {
-                                                if (
-                                                  allAssignedNames.has(
-                                                    ling.namaLingkungan
+                                                      {ling.namaLingkungan} (
+                                                      {ling.jumlahTatib} tatib)
+                                                    </option>
                                                   )
-                                                )
-                                                  return false;
-
-                                                const availability =
-                                                  ling.availability[
-                                                    normalizedChurch
-                                                  ];
-                                                if (!availability) return false;
-
-                                                const daySchedule =
-                                                  assignment.day === "Minggu"
-                                                    ? availability.Minggu
-                                                    : availability.Sabtu;
-                                                if (
-                                                  !daySchedule ||
-                                                  !daySchedule.includes(
-                                                    assignment.time
-                                                  )
-                                                )
-                                                  return false;
-
-                                                return true;
-                                              });
-
-                                            return (
-                                              <div className="mt-2">
-                                                <select
-                                                  onChange={(e) => {
-                                                    if (e.target.value) {
-                                                      handleAddLingkungan(
-                                                        assignmentIndex,
-                                                        e.target.value
-                                                      );
-                                                      e.target.value = "";
-                                                    }
-                                                  }}
-                                                  className="w-full text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                >
-                                                  <option value="">
-                                                    + Tambah Lingkungan
-                                                  </option>
-                                                  {availableLingkungan.map(
-                                                    (ling, lingIndex) => (
-                                                      <option
-                                                        key={`${assignment.date}-${assignment.church}-${assignment.time}-${ling.namaLingkungan}-${ling.id}-${lingIndex}`}
-                                                        value={
-                                                          ling.namaLingkungan
-                                                        }
-                                                      >
-                                                        {ling.namaLingkungan} (
-                                                        {ling.jumlahTatib}{" "}
-                                                        tatib)
-                                                      </option>
-                                                    )
-                                                  )}
-                                                </select>
-                                              </div>
-                                            );
-                                          })()}
+                                                )}
+                                              </select>
+                                            </div>
+                                          );
+                                        })()}
                                         <div className="mt-2 pt-1 border-t border-gray-200">
                                           <span
                                             className={`text-xs font-medium ${
@@ -2216,9 +2408,27 @@ export default function KalendarPenugasanPage() {
                 Batal
               </button>
               <button
-                onClick={() => {
-                  generateAssignments();
-                  setShowMinTatibConfig(false);
+                onClick={async () => {
+                  try {
+                    // Save config to database
+                    const response = await fetch("/api/min-tatib-config", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ config: minTatibConfig }),
+                    });
+
+                    if (response.ok) {
+                      // Regenerate assignments with new config
+                      generateAssignments();
+                      setShowMinTatibConfig(false);
+                      alert("Konfigurasi minimum tatib telah tersimpan");
+                    } else {
+                      alert("Gagal menyimpan konfigurasi");
+                    }
+                  } catch (error) {
+                    console.error("Error saving min tatib config:", error);
+                    alert("Terjadi kesalahan saat menyimpan konfigurasi");
+                  }
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
