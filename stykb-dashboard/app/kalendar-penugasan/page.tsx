@@ -639,11 +639,10 @@ export default function KalendarPenugasanPage() {
         typeof configValue === "number"
           ? configValue
           : (configValue ? parseInt(configValue as string) : 20) || 20;
-      const MAX_TATIB = MIN_TATIB + 8;
+      const MAX_TATIB = MIN_TATIB + 10;
 
       const assigned: AssignedLingkungan[] = [];
       let totalTatib = 0;
-      let firstWilayah: string | null = null; // Track the wilayah of the first assigned lingkungan
 
       const currentWeek = getWeekOfMonth(currentDay);
       const previousWeek = currentWeek - 1;
@@ -654,7 +653,9 @@ export default function KalendarPenugasanPage() {
       const todayAssignments =
         dailyAssignments[currentDay] || new Set<string>();
 
-      // Try to assign from unassigned pool first, prioritizing those not in previous week
+      // STEP 1: Group available lingkungan by wilayah
+      const wilayahGroups: { [wilayah: string]: LingkunganData[] } = {};
+
       for (let i = unassignedPool.length - 1; i >= 0; i--) {
         const lingkungan = unassignedPool[i];
 
@@ -676,87 +677,94 @@ export default function KalendarPenugasanPage() {
           lingkungan.namaLingkungan
         );
         if (isFromPreviousWeek && unassignedPool.length > 5) {
-          continue; // Skip and try to find someone from an earlier week
+          continue;
         }
 
-        // If we already have assigned lingkungan, prioritize same wilayah
-        if (assigned.length > 0 && firstWilayah) {
-          const currentWilayah = getWilayah(lingkungan.namaLingkungan);
-          // Skip if not same wilayah (we'll come back to this in second pass if needed)
-          if (currentWilayah !== firstWilayah) {
-            continue;
-          }
+        // Group by wilayah
+        const wilayah = getWilayah(lingkungan.namaLingkungan);
+        if (!wilayahGroups[wilayah]) {
+          wilayahGroups[wilayah] = [];
         }
-
-        // This lingkungan is available, assign it
-        const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-        assigned.push({
-          name: lingkungan.namaLingkungan,
-          tatib: tatib,
-        });
-        totalTatib += tatib;
-
-        // Set the first wilayah if this is the first assignment
-        if (assigned.length === 1) {
-          firstWilayah = getWilayah(lingkungan.namaLingkungan);
-        }
-
-        // Remove from unassigned pool
-        unassignedPool.splice(i, 1);
-
-        // Track this assignment for the current week and day
-        if (!weeklyAssignments[currentWeek]) {
-          weeklyAssignments[currentWeek] = new Set<string>();
-        }
-        weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
-
-        if (!dailyAssignments[currentDay]) {
-          dailyAssignments[currentDay] = new Set<string>();
-        }
-        dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
-
-        // If we've reached minimum tatib or max threshold, stop assigning for this slot
-        if (totalTatib >= MIN_TATIB || totalTatib >= MAX_TATIB) {
-          break;
-        }
+        wilayahGroups[wilayah].push(lingkungan);
       }
 
-      // Second pass: if we still need more tatib and couldn't find same wilayah, assign any available
-      if (totalTatib < MIN_TATIB) {
-        for (let i = unassignedPool.length - 1; i >= 0; i--) {
-          const lingkungan = unassignedPool[i];
+      // STEP 2: Calculate total tatib per wilayah group
+      const wilayahTotals: {
+        wilayah: string;
+        totalTatib: number;
+        lingkungan: LingkunganData[];
+      }[] = [];
 
-          // Skip if already assigned today
-          if (todayAssignments.has(lingkungan.namaLingkungan)) {
-            continue;
+      for (const [wilayah, lingkunganList] of Object.entries(wilayahGroups)) {
+        const total = lingkunganList.reduce((sum, ling) => {
+          return sum + (parseInt(ling.jumlahTatib) || 0);
+        }, 0);
+
+        wilayahTotals.push({
+          wilayah,
+          totalTatib: total,
+          lingkungan: lingkunganList,
+        });
+      }
+
+      // STEP 3: Sort wilayah groups - prioritize those that can meet MIN_TATIB alone
+      wilayahTotals.sort((a, b) => {
+        // Prioritize groups that can meet MIN_TATIB
+        const aMeetsMin = a.totalTatib >= MIN_TATIB;
+        const bMeetsMin = b.totalTatib >= MIN_TATIB;
+
+        if (aMeetsMin && !bMeetsMin) return -1;
+        if (!aMeetsMin && bMeetsMin) return 1;
+
+        // Among groups that meet min, prefer smaller totals (closer to MIN_TATIB)
+        if (aMeetsMin && bMeetsMin) {
+          return a.totalTatib - b.totalTatib;
+        }
+
+        // Among groups that don't meet min, prefer larger totals
+        return b.totalTatib - a.totalTatib;
+      });
+
+      // STEP 4: Try to assign complete wilayah groups first
+      for (const group of wilayahTotals) {
+        if (totalTatib >= MIN_TATIB) break; // Already met minimum
+
+        // If we already started assigning, only continue with the same wilayah
+        if (assigned.length > 0) {
+          // Check if this group is from the same wilayah as already assigned
+          const currentWilayah = getWilayah(assigned[0].name);
+          if (group.wilayah !== currentWilayah) {
+            continue; // Skip this group, stick with current wilayah
           }
+        }
 
-          // Check if this lingkungan is available for this slot
-          const availability = lingkungan.availability[normalizedChurch];
-          if (!availability) continue;
-
-          const daySchedule =
-            day === "Minggu" ? availability.Minggu : availability.Sabtu;
-          if (!daySchedule || !daySchedule.includes(time)) continue;
-
-          // Skip if this lingkungan was assigned in previous week (unless pool is running low)
-          const isFromPreviousWeek = previousWeekAssignments.has(
-            lingkungan.namaLingkungan
-          );
-          if (isFromPreviousWeek && unassignedPool.length > 5) {
-            continue;
-          }
-
-          // This lingkungan is available, assign it
+        // Try to use this wilayah group - assign ALL lingkungan from this group needed to meet MIN_TATIB
+        let groupAssigned = false;
+        for (const lingkungan of group.lingkungan) {
           const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+
+          // Check if adding this would exceed MAX_TATIB
+          if (totalTatib + tatib > MAX_TATIB) {
+            // Only skip if we've already met MIN_TATIB, otherwise keep trying to meet minimum
+            if (totalTatib >= MIN_TATIB) {
+              continue;
+            }
+          }
+
           assigned.push({
             name: lingkungan.namaLingkungan,
             tatib: tatib,
           });
           totalTatib += tatib;
+          groupAssigned = true;
 
           // Remove from unassigned pool
-          unassignedPool.splice(i, 1);
+          const poolIndex = unassignedPool.findIndex(
+            (l) => l.namaLingkungan === lingkungan.namaLingkungan
+          );
+          if (poolIndex !== -1) {
+            unassignedPool.splice(poolIndex, 1);
+          }
 
           // Track this assignment for the current week and day
           if (!weeklyAssignments[currentWeek]) {
@@ -769,103 +777,15 @@ export default function KalendarPenugasanPage() {
           }
           dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
 
-          // If we've reached minimum tatib or max threshold, stop assigning for this slot
-          if (totalTatib >= MIN_TATIB || totalTatib >= MAX_TATIB) {
+          // If we've met MIN_TATIB and would exceed MAX_TATIB with next one, stop
+          if (totalTatib >= MIN_TATIB) {
             break;
           }
         }
-      }
 
-      // If pool is empty and we still need more tatib, reuse lingkungan
-      // BUT only those NOT assigned to Paskah, NOT assigned in previous week, and NOT assigned today
-      if (
-        totalTatib < MIN_TATIB &&
-        unassignedPool.length === 0 &&
-        paskahAssignedLingkungan.size > 0
-      ) {
-        // Get all lingkungan not assigned to Paskah, not in previous week, and not assigned today
-        const reusableLingkungan = availableLingkungan.filter(
-          (ling) =>
-            !previousWeekAssignments.has(ling.namaLingkungan) &&
-            !todayAssignments.has(ling.namaLingkungan)
-        );
-
-        // First pass: prioritize same wilayah if we already have assignments
-        if (firstWilayah) {
-          for (const lingkungan of reusableLingkungan) {
-            // Check if same wilayah
-            const currentWilayah = getWilayah(lingkungan.namaLingkungan);
-            if (currentWilayah !== firstWilayah) continue;
-
-            // Check if this lingkungan is available for this slot
-            const availability = lingkungan.availability[normalizedChurch];
-            if (!availability) continue;
-
-            const daySchedule =
-              day === "Minggu" ? availability.Minggu : availability.Sabtu;
-            if (!daySchedule || !daySchedule.includes(time)) continue;
-
-            // This lingkungan is available, assign it
-            const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-            assigned.push({
-              name: lingkungan.namaLingkungan,
-              tatib: tatib,
-            });
-            totalTatib += tatib;
-
-            // Track this assignment for the current week and day
-            if (!weeklyAssignments[currentWeek]) {
-              weeklyAssignments[currentWeek] = new Set<string>();
-            }
-            weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
-
-            if (!dailyAssignments[currentDay]) {
-              dailyAssignments[currentDay] = new Set<string>();
-            }
-            dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
-
-            // If we've reached minimum tatib or max threshold, stop assigning for this slot
-            if (totalTatib >= MIN_TATIB || totalTatib >= MAX_TATIB) {
-              break;
-            }
-          }
-        }
-
-        // Second pass: if still need more, assign any available lingkungan
-        if (totalTatib < MIN_TATIB) {
-          for (const lingkungan of reusableLingkungan) {
-            // Check if this lingkungan is available for this slot
-            const availability = lingkungan.availability[normalizedChurch];
-            if (!availability) continue;
-
-            const daySchedule =
-              day === "Minggu" ? availability.Minggu : availability.Sabtu;
-            if (!daySchedule || !daySchedule.includes(time)) continue;
-
-            // This lingkungan is available, assign it
-            const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-            assigned.push({
-              name: lingkungan.namaLingkungan,
-              tatib: tatib,
-            });
-            totalTatib += tatib;
-
-            // Track this assignment for the current week and day
-            if (!weeklyAssignments[currentWeek]) {
-              weeklyAssignments[currentWeek] = new Set<string>();
-            }
-            weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
-
-            if (!dailyAssignments[currentDay]) {
-              dailyAssignments[currentDay] = new Set<string>();
-            }
-            dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
-
-            // If we've reached minimum tatib or max threshold, stop assigning for this slot
-            if (totalTatib >= MIN_TATIB || totalTatib >= MAX_TATIB) {
-              break;
-            }
-          }
+        // If we've assigned from this wilayah group, stop (don't mix wilayahs)
+        if (groupAssigned) {
+          break;
         }
       }
 
@@ -1002,6 +922,144 @@ export default function KalendarPenugasanPage() {
         }
       }
     }
+
+    // Post-processing: Consolidate lingkungan from same wilayah on same date
+    // This handles cases where multiple slots on the same date have partial assignments from the same wilayah
+    const consolidateWilayahOnSameDate = () => {
+      const dateGroups: { [date: string]: number[] } = {};
+
+      // Group assignments by date
+      assignments.forEach((assignment, index) => {
+        if (!dateGroups[assignment.date]) {
+          dateGroups[assignment.date] = [];
+        }
+        dateGroups[assignment.date].push(index);
+      });
+
+      // For each date, check if we can consolidate wilayah
+      Object.keys(dateGroups).forEach((date) => {
+        const indices = dateGroups[date];
+
+        // Get assignments for this date that need more tatib
+        const needsMoreIndices = indices.filter(
+          (idx) =>
+            assignments[idx].needsMore &&
+            assignments[idx].assignedLingkungan.length > 0
+        );
+
+        if (needsMoreIndices.length < 2) return; // Need at least 2 slots to consolidate
+
+        // Group by wilayah
+        const wilayahMap: { [wilayah: string]: number[] } = {};
+        needsMoreIndices.forEach((idx) => {
+          const assignment = assignments[idx];
+          if (assignment.assignedLingkungan.length > 0) {
+            const wilayah = getWilayah(assignment.assignedLingkungan[0].name);
+            if (!wilayahMap[wilayah]) {
+              wilayahMap[wilayah] = [];
+            }
+            wilayahMap[wilayah].push(idx);
+          }
+        });
+
+        // Find wilayah with multiple slots that are both incomplete
+        Object.keys(wilayahMap).forEach((wilayah) => {
+          const slotIndices = wilayahMap[wilayah];
+          if (slotIndices.length >= 2) {
+            // Combine all lingkungan from this wilayah into the first slot
+            const targetIndex = slotIndices[0];
+            const targetAssignment = assignments[targetIndex];
+
+            // Get MIN_TATIB for target slot
+            const normalizedChurch = targetAssignment.church.includes("Yakobus")
+              ? "St. Yakobus"
+              : "Pegangsaan 2";
+            const timeKey = `${
+              targetAssignment.day === "Minggu" ? "Minggu" : "Sabtu"
+            } ${targetAssignment.time}`;
+            const configValue = minTatibConfig[normalizedChurch]?.[timeKey];
+            const MIN_TATIB =
+              typeof configValue === "number"
+                ? configValue
+                : (configValue ? parseInt(configValue as string) : 20) || 20;
+            const MAX_TATIB = MIN_TATIB + 10;
+
+            let combinedLingkungan = [...targetAssignment.assignedLingkungan];
+            let combinedTatib = targetAssignment.totalTatib;
+
+            // Collect lingkungan from other slots
+            for (let i = 1; i < slotIndices.length; i++) {
+              const sourceIndex = slotIndices[i];
+              const sourceAssignment = assignments[sourceIndex];
+
+              sourceAssignment.assignedLingkungan.forEach((ling) => {
+                // Only add if it won't exceed MAX_TATIB
+                if (combinedTatib + ling.tatib <= MAX_TATIB) {
+                  combinedLingkungan.push(ling);
+                  combinedTatib += ling.tatib;
+
+                  // Add back to unassigned pool so it can be reassigned
+                  const lingkunganData = availableLingkungan.find(
+                    (l) => l.namaLingkungan === ling.name
+                  );
+                  if (lingkunganData) {
+                    unassignedPool.push(lingkunganData);
+                  }
+                }
+              });
+
+              // Clear the source slot so it can get a new assignment
+              assignments[sourceIndex].assignedLingkungan = [];
+              assignments[sourceIndex].totalTatib = 0;
+              assignments[sourceIndex].needsMore = true;
+            }
+
+            // Update target slot with combined lingkungan
+            assignments[targetIndex].assignedLingkungan = combinedLingkungan;
+            assignments[targetIndex].totalTatib = combinedTatib;
+            assignments[targetIndex].needsMore = combinedTatib < MIN_TATIB;
+
+            // Now reassign empty slots with available lingkungan from different wilayah
+            for (let i = 1; i < slotIndices.length; i++) {
+              const emptyIndex = slotIndices[i];
+              const emptyAssignment = assignments[emptyIndex];
+
+              // Find available lingkungan from different wilayah
+              const newAssignment = getNextLingkunganForSlot(
+                emptyAssignment.church,
+                emptyAssignment.day,
+                emptyAssignment.time,
+                parseInt(emptyAssignment.date.split("/")[0])
+              );
+
+              const newTotal = newAssignment.reduce(
+                (sum, l) => sum + l.tatib,
+                0
+              );
+              assignments[emptyIndex].assignedLingkungan = newAssignment;
+              assignments[emptyIndex].totalTatib = newTotal;
+
+              // Get MIN_TATIB for this slot
+              const normChurch = emptyAssignment.church.includes("Yakobus")
+                ? "St. Yakobus"
+                : "Pegangsaan 2";
+              const tKey = `${
+                emptyAssignment.day === "Minggu" ? "Minggu" : "Sabtu"
+              } ${emptyAssignment.time}`;
+              const cValue = minTatibConfig[normChurch]?.[tKey];
+              const minTatib =
+                typeof cValue === "number"
+                  ? cValue
+                  : (cValue ? parseInt(cValue as string) : 20) || 20;
+
+              assignments[emptyIndex].needsMore = newTotal < minTatib;
+            }
+          }
+        });
+      });
+    };
+
+    consolidateWilayahOnSameDate();
 
     setAssignments(assignments);
     saveAssignmentsToStorage(assignments);
