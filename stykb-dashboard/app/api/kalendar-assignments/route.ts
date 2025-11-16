@@ -54,28 +54,48 @@ export async function POST(request: NextRequest) {
       console.log("🗑️  Deleting existing assignments for tahun:", tahun, "bulan:", bulan);
       
       // First, verify what exists
-      const { data: existingData } = await supabase
+      const { data: existingData, error: checkError } = await supabase
         .from("kalendar_assignments")
         .select("id")
         .eq("tahun", tahun)
         .eq("bulan", bulan);
       
+      if (checkError) {
+        console.error("❌ Error checking existing data:", checkError);
+      }
+      
       console.log(`📊 Found ${existingData?.length || 0} existing assignments to delete`);
       
-      const { error: deleteError } = await supabase
-        .from("kalendar_assignments")
-        .delete()
-        .eq("tahun", tahun)
-        .eq("bulan", bulan);
-      
-      if (deleteError) {
-        console.error("❌ Delete failed:", deleteError);
-        return NextResponse.json({ error: deleteError.message }, { status: 500 });
-      } else {
-        console.log("✅ Delete successful");
+      if (existingData && existingData.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("kalendar_assignments")
+          .delete()
+          .eq("tahun", tahun)
+          .eq("bulan", bulan);
         
-        // Wait to ensure delete is fully committed before inserting
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (deleteError) {
+          console.error("❌ Delete failed:", deleteError);
+          return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        }
+        
+        console.log("✅ Delete successful, waiting for commit...");
+        
+        // Wait longer to ensure delete is fully committed
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Verify deletion completed
+        const { data: verifyData } = await supabase
+          .from("kalendar_assignments")
+          .select("id")
+          .eq("tahun", tahun)
+          .eq("bulan", bulan);
+        
+        if (verifyData && verifyData.length > 0) {
+          console.error(`⚠️  Warning: ${verifyData.length} records still exist after delete!`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          console.log("✅ Deletion verified, proceeding with insert");
+        }
       }
     }
 
