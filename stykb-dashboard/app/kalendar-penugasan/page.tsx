@@ -126,6 +126,22 @@ export default function KalendarPenugasanPage() {
         needs_more: a.needsMore,
       }));
 
+      // Check for duplicates and log them
+      const seen = new Map<string, number>();
+      dataToSave.forEach((item, index) => {
+        const key = `${item.tahun}-${item.bulan}-${item.tanggal}-${item.gereja}-${item.waktu}`;
+        if (seen.has(key)) {
+          console.error(
+            `❌ DUPLICATE FOUND at index ${index}:`,
+            key,
+            "first seen at index",
+            seen.get(key)
+          );
+        } else {
+          seen.set(key, index);
+        }
+      });
+
       // Deduplicate before sending - prevent duplicate key errors
       const uniqueData = dataToSave.filter((item, index, self) => {
         return (
@@ -142,10 +158,9 @@ export default function KalendarPenugasanPage() {
       });
 
       if (uniqueData.length !== dataToSave.length) {
-        console.warn(
-          `⚠️  Removed ${
-            dataToSave.length - uniqueData.length
-          } duplicates from generated data before saving`
+        const duplicateCount = dataToSave.length - uniqueData.length;
+        console.error(
+          `⚠️  REMOVED ${duplicateCount} DUPLICATES from generated data before saving`
         );
       }
 
@@ -658,12 +673,13 @@ export default function KalendarPenugasanPage() {
 
         try {
           const response = await fetch(
-            `/api/kalendar-assignments?tahun=${checkYear}&bulan=${checkMonth}` // Database uses 0-11 indexing
+            `/api/kalendar-assignments?tahun=${checkYear}&bulan=${checkMonth}`
           );
           if (response.ok) {
             const data = await response.json();
-            if (data.assignments && Array.isArray(data.assignments)) {
-              data.assignments.forEach((assignment: any) => {
+            // API returns array directly, not wrapped in { assignments: [...] }
+            if (Array.isArray(data)) {
+              data.forEach((assignment: any) => {
                 if (
                   assignment.assigned_lingkungan &&
                   Array.isArray(assignment.assigned_lingkungan)
@@ -759,9 +775,19 @@ export default function KalendarPenugasanPage() {
 
     // Helper function to extract wilayah (area) from lingkungan name
     // e.g., "Agnes 2" -> "Agnes", "Maria 1" -> "Maria"
+    // "Lingkungan Santa Maria" -> "Maria", "Lingkungan Santo Petrus" -> "Petrus"
     const getWilayah = (namaLingkungan: string): string => {
-      const match = namaLingkungan.match(/^(.+?)\s*\d+$/);
-      return match ? match[1].trim() : namaLingkungan;
+      // Handle "Lingkungan Santa/Santo X" format
+      const lingkunganMatch = namaLingkungan.match(
+        /^Lingkungan\s+Sant[ao]\s+(.+)$/i
+      );
+      if (lingkunganMatch) {
+        return lingkunganMatch[1].trim();
+      }
+
+      // Handle "Name Number" format (e.g., "Agnes 2" -> "Agnes")
+      const numberMatch = namaLingkungan.match(/^(.+?)\s*\d+$/);
+      return numberMatch ? numberMatch[1].trim() : namaLingkungan;
     };
 
     // Helper function to get next available lingkungan for a slot
@@ -781,283 +807,159 @@ export default function KalendarPenugasanPage() {
         typeof configValue === "number"
           ? configValue
           : (configValue ? parseInt(configValue as string) : 20) || 20;
-      const MAX_TATIB = MIN_TATIB + 10;
 
       const assigned: AssignedLingkungan[] = [];
       let totalTatib = 0;
 
-      const currentWeek = getWeekOfMonth(currentDay);
-      const previousWeek = currentWeek - 1;
-
-      // Get lingkungan assigned in previous week and on current day
-      const previousWeekAssignments =
-        weeklyAssignments[previousWeek] || new Set<string>();
+      // Get lingkungan already assigned today (same day of month)
       const todayAssignments =
         dailyAssignments[currentDay] || new Set<string>();
 
-      // STEP 1: Group available lingkungan by wilayah
-      const wilayahGroups: { [wilayah: string]: LingkunganData[] } = {};
+      // SIMPLE FAIRNESS ALGORITHM:
+      // 1. Filter lingkungan who are available for this slot AND not assigned today
+      // 2. Sort by total assignment count (lowest first)
+      // 3. Pick the first one
 
-      for (let i = unassignedPool.length - 1; i >= 0; i--) {
-        const lingkungan = unassignedPool[i];
-
+      const availableLingkungan = lingkunganData.filter((ling) => {
         // Skip if already assigned today
-        if (todayAssignments.has(lingkungan.namaLingkungan)) {
-          continue;
-        }
+        if (todayAssignments.has(ling.namaLingkungan)) return false;
 
-        // Check if this lingkungan is available for this slot
-        const availability = lingkungan.availability[normalizedChurch];
-        if (!availability) continue;
+        // Check availability for this church/day/time
+        const availability = ling.availability[normalizedChurch];
+        if (!availability) return false;
 
         const daySchedule =
           day === "Minggu" ? availability.Minggu : availability.Sabtu;
-        if (!daySchedule || !daySchedule.includes(time)) continue;
+        if (!daySchedule || !daySchedule.includes(time)) return false;
 
-        // Skip if this lingkungan was assigned in previous week (unless pool is running low)
-        const isFromPreviousWeek = previousWeekAssignments.has(
-          lingkungan.namaLingkungan
-        );
-        if (isFromPreviousWeek && unassignedPool.length > 5) {
-          continue;
-        }
-
-        // Group by wilayah
-        const wilayah = getWilayah(lingkungan.namaLingkungan);
-        if (!wilayahGroups[wilayah]) {
-          wilayahGroups[wilayah] = [];
-        }
-        wilayahGroups[wilayah].push(lingkungan);
-      }
-
-      // STEP 2: Calculate total tatib per wilayah group
-      const wilayahTotals: {
-        wilayah: string;
-        totalTatib: number;
-        lingkungan: LingkunganData[];
-      }[] = [];
-
-      for (const [wilayah, lingkunganList] of Object.entries(wilayahGroups)) {
-        const total = lingkunganList.reduce((sum, ling) => {
-          return sum + (parseInt(ling.jumlahTatib) || 0);
-        }, 0);
-
-        wilayahTotals.push({
-          wilayah,
-          totalTatib: total,
-          lingkungan: lingkunganList,
-        });
-      }
-
-      // STEP 3: Sort wilayah groups - prioritize those that can meet MIN_TATIB alone
-      wilayahTotals.sort((a, b) => {
-        // Prioritize groups that can meet MIN_TATIB
-        const aMeetsMin = a.totalTatib >= MIN_TATIB;
-        const bMeetsMin = b.totalTatib >= MIN_TATIB;
-
-        if (aMeetsMin && !bMeetsMin) return -1;
-        if (!aMeetsMin && bMeetsMin) return 1;
-
-        // Among groups that meet min, prefer smaller totals (closer to MIN_TATIB)
-        if (aMeetsMin && bMeetsMin) {
-          return a.totalTatib - b.totalTatib;
-        }
-
-        // Among groups that don't meet min, prefer larger totals
-        return b.totalTatib - a.totalTatib;
+        return true;
       });
 
-      // PRIORITY 1: Check if any single lingkungan can meet MIN_TATIB alone (≥20 tatib)
-      // This is the HIGHEST priority - prefer single lingkungan assignments
-      // IMPORTANT: Maintain strict usage count ordering (0x before 1x before 2x, etc.)
-      const singleLingkunganCandidates: LingkunganData[] = [];
-
-      for (const group of wilayahTotals) {
-        for (const lingkungan of group.lingkungan) {
-          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-          if (tatib >= MIN_TATIB && tatib <= MAX_TATIB) {
-            singleLingkunganCandidates.push(lingkungan);
-          }
-        }
+      if (availableLingkungan.length === 0) {
+        console.warn(
+          `⚠️  NO lingkungan available for ${church} ${day} ${time} on day ${currentDay}`
+        );
+        return [];
       }
 
-      // If we have lingkungan that can meet MIN_TATIB alone, pick the one with LOWEST usage count
-      if (singleLingkunganCandidates.length > 0) {
-        // Sort by usage count (ascending) to pick the least-used one - DO NOT shuffle here
-        singleLingkunganCandidates.sort((a, b) => {
+      // Sort by assignment count (FAIRNESS FIRST AND ONLY)
+      availableLingkungan.sort((a, b) => {
+        const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
+        const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
+
+        if (countA !== countB) return countA - countB; // Lower count wins
+
+        // If counts are equal, sort alphabetically for consistency
+        return a.namaLingkungan.localeCompare(b.namaLingkungan);
+      });
+
+      const selectedLingkungan = availableLingkungan[0];
+      const tatib = parseInt(selectedLingkungan.jumlahTatib) || 0;
+      const currentCount =
+        currentMonthUsageCounts.get(selectedLingkungan.namaLingkungan) || 0;
+
+      // Debug: Show top 3 candidates to understand selection
+      if (availableLingkungan.length >= 3) {
+        const top3 = availableLingkungan
+          .slice(0, 3)
+          .map((l) => {
+            const count = currentMonthUsageCounts.get(l.namaLingkungan) || 0;
+            const t = parseInt(l.jumlahTatib) || 0;
+            return `${l.namaLingkungan}(${count}x,${t}t)`;
+          })
+          .join(", ");
+        console.log(`   Top 3: ${top3}`);
+      }
+
+      console.log(
+        `✅ ${church} ${time} Day ${currentDay}: Selected ${selectedLingkungan.namaLingkungan} (${tatib} tatib, count: ${currentCount})`
+      );
+
+      assigned.push({
+        name: selectedLingkungan.namaLingkungan,
+        tatib: tatib,
+      });
+
+      totalTatib = tatib; // Update the existing totalTatib variable
+
+      // Update count
+      currentMonthUsageCounts.set(
+        selectedLingkungan.namaLingkungan,
+        currentCount + 1
+      );
+
+      // Track daily assignment
+      if (!dailyAssignments[currentDay]) {
+        dailyAssignments[currentDay] = new Set<string>();
+      }
+      dailyAssignments[currentDay].add(selectedLingkungan.namaLingkungan);
+
+      // If tatib < MIN_TATIB, try to add more lingkungan from the SAME wilayah
+      if (tatib < MIN_TATIB) {
+        const wilayah = getWilayah(selectedLingkungan.namaLingkungan);
+
+        // Find other lingkungan from same wilayah who are available and not assigned today
+        let sameWilayahLingkungan = availableLingkungan.filter((ling) => {
+          if (ling.namaLingkungan === selectedLingkungan.namaLingkungan)
+            return false; // Skip the one already selected
+          if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
+            return false; // Skip if already assigned today
+          return getWilayah(ling.namaLingkungan) === wilayah;
+        });
+
+        // If no same-wilayah lingkungan available, use ANY available lingkungan
+        if (sameWilayahLingkungan.length === 0) {
+          console.log(
+            `   ⚠️ No same-wilayah lingkungan found for ${selectedLingkungan.namaLingkungan}, using any available`
+          );
+          sameWilayahLingkungan = availableLingkungan.filter((ling) => {
+            if (ling.namaLingkungan === selectedLingkungan.namaLingkungan)
+              return false;
+            if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
+              return false;
+            return true;
+          });
+        }
+
+        // Sort by usage count (fairness)
+        sameWilayahLingkungan.sort((a, b) => {
           const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
           const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
-
-          // Primary: by usage count (least used first)
-          if (countA !== countB) {
-            return countA - countB;
-          }
-
-          // Secondary: by name for consistency when usage counts are equal
+          if (countA !== countB) return countA - countB;
           return a.namaLingkungan.localeCompare(b.namaLingkungan);
         });
 
-        const selectedLingkungan = singleLingkunganCandidates[0]; // Pick the least-used
-        const tatib = parseInt(selectedLingkungan.jumlahTatib) || 0;
+        // Add lingkungan from same wilayah (or any available) until we reach MIN_TATIB
+        for (const additionalLing of sameWilayahLingkungan) {
+          if (totalTatib >= MIN_TATIB) break;
 
-        assigned.push({
-          name: selectedLingkungan.namaLingkungan,
-          tatib: tatib,
-        });
-
-        // Update current month usage count
-        const currentCount =
-          currentMonthUsageCounts.get(selectedLingkungan.namaLingkungan) || 0;
-        currentMonthUsageCounts.set(
-          selectedLingkungan.namaLingkungan,
-          currentCount + 1
-        );
-
-        // Rebuild pool with updated usage counts for fair rotation
-        unassignedPool = rebuildPoolByUsage();
-
-        // Track this assignment for the current week and day
-        if (!weeklyAssignments[currentWeek]) {
-          weeklyAssignments[currentWeek] = new Set<string>();
-        }
-        weeklyAssignments[currentWeek].add(selectedLingkungan.namaLingkungan);
-
-        if (!dailyAssignments[currentDay]) {
-          dailyAssignments[currentDay] = new Set<string>();
-        }
-        dailyAssignments[currentDay].add(selectedLingkungan.namaLingkungan);
-
-        return assigned;
-      }
-
-      // PRIORITY 2: If no single lingkungan can meet MIN_TATIB, use STRICT wilayah grouping
-      // Multiple lingkungan MUST be from the SAME wilayah - NO MIXING
-      // IMPORTANT: Sort within each wilayah group by usage count (least used first) instead of shuffling
-      wilayahTotals.forEach((group) => {
-        group.lingkungan.sort((a, b) => {
-          const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
-          const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
-
-          // Primary: by usage count (least used first)
-          if (countA !== countB) {
-            return countA - countB;
-          }
-
-          // Secondary: by name for consistency
-          return a.namaLingkungan.localeCompare(b.namaLingkungan);
-        });
-      });
-
-      // Try to find a complete wilayah group that can meet MIN_TATIB
-      for (const group of wilayahTotals) {
-        if (group.totalTatib >= MIN_TATIB) {
-          // This wilayah group has enough tatib - assign ALL needed lingkungan from this group
-          for (const lingkungan of group.lingkungan) {
-            const tatib = parseInt(lingkungan.jumlahTatib) || 0;
-
-            // Add this lingkungan if we haven't met MIN_TATIB yet or if under MAX_TATIB
-            if (totalTatib < MIN_TATIB || totalTatib + tatib <= MAX_TATIB) {
-              assigned.push({
-                name: lingkungan.namaLingkungan,
-                tatib: tatib,
-              });
-              totalTatib += tatib;
-
-              // Update current month usage count
-              const currentCount =
-                currentMonthUsageCounts.get(lingkungan.namaLingkungan) || 0;
-              currentMonthUsageCounts.set(
-                lingkungan.namaLingkungan,
-                currentCount + 1
-              );
-
-              // Track this assignment for the current week and day
-              if (!weeklyAssignments[currentWeek]) {
-                weeklyAssignments[currentWeek] = new Set<string>();
-              }
-              weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
-
-              if (!dailyAssignments[currentDay]) {
-                dailyAssignments[currentDay] = new Set<string>();
-              }
-              dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
-
-              // Stop if we've met MIN_TATIB and would exceed MAX_TATIB with more
-              if (totalTatib >= MIN_TATIB) {
-                break;
-              }
-            }
-          }
-
-          // Rebuild pool with updated usage counts for fair rotation
-          unassignedPool = rebuildPoolByUsage();
-
-          // Successfully assigned from this wilayah group - return immediately
-          return assigned;
-        }
-      }
-
-      // If NO wilayah group has enough tatib on its own, assign the best available group
-      // even if it doesn't meet MIN_TATIB (will be marked as needsMore)
-      if (wilayahTotals.length > 0 && assigned.length === 0) {
-        console.log(
-          "⚠️  No wilayah group meets MIN_TATIB, using best available group"
-        );
-        const bestGroup = wilayahTotals[0]; // Already sorted by total tatib
-        console.log(
-          "📋 Best group:",
-          bestGroup.wilayah,
-          "with",
-          bestGroup.totalTatib,
-          "tatib"
-        );
-
-        for (const lingkungan of bestGroup.lingkungan) {
-          const tatib = parseInt(lingkungan.jumlahTatib) || 0;
+          const additionalTatib = parseInt(additionalLing.jumlahTatib) || 0;
 
           assigned.push({
-            name: lingkungan.namaLingkungan,
-            tatib: tatib,
+            name: additionalLing.namaLingkungan,
+            tatib: additionalTatib,
           });
-          totalTatib += tatib;
+          totalTatib += additionalTatib;
 
-          // Update current month usage count
-          const currentCount =
-            currentMonthUsageCounts.get(lingkungan.namaLingkungan) || 0;
+          // Update count
+          const addCount =
+            currentMonthUsageCounts.get(additionalLing.namaLingkungan) || 0;
           currentMonthUsageCounts.set(
-            lingkungan.namaLingkungan,
-            currentCount + 1
+            additionalLing.namaLingkungan,
+            addCount + 1
           );
 
-          // Track this assignment for the current week and day
-          if (!weeklyAssignments[currentWeek]) {
-            weeklyAssignments[currentWeek] = new Set<string>();
-          }
-          weeklyAssignments[currentWeek].add(lingkungan.namaLingkungan);
+          // Track daily assignment
+          dailyAssignments[currentDay].add(additionalLing.namaLingkungan);
 
-          if (!dailyAssignments[currentDay]) {
-            dailyAssignments[currentDay] = new Set<string>();
-          }
-          dailyAssignments[currentDay].add(lingkungan.namaLingkungan);
-
-          // Stop when we would exceed MAX_TATIB (even if under MIN_TATIB)
-          if (totalTatib + 10 > MAX_TATIB) {
-            break;
-          }
+          console.log(
+            `   ➕ Added ${additionalLing.namaLingkungan} (${additionalTatib} tatib) from ${wilayah} - Total: ${totalTatib}`
+          );
         }
-
-        // Rebuild pool with updated usage counts for fair rotation
-        unassignedPool = rebuildPoolByUsage();
       }
 
-      // If still no assignments (no available lingkungan at all), log warning
-      if (assigned.length === 0) {
-        console.warn(
-          `⚠️  No lingkungan available for ${church} ${day} ${time} on day ${currentDay}`
-        );
-        console.warn(`   Available wilayah groups:`, wilayahTotals.length);
-        console.warn(`   Unassigned pool size:`, unassignedPool.length);
-      }
+      // Rebuild pool
+      unassignedPool = rebuildPoolByUsage();
 
       return assigned;
     };
@@ -1081,114 +983,139 @@ export default function KalendarPenugasanPage() {
           continue;
         }
 
+        // Helper to check if assignment already exists before adding
+        const isDuplicate = (church: string, time: string) => {
+          return assignments.some(
+            (a) => a.date === dateStr && a.church === church && a.time === time
+          );
+        };
+
         // St. Yakobus assignments
         if (dayOfWeek === 0) {
           // Sunday
-          const assigned0800 = getNextLingkunganForSlot(
-            "St. Yakobus",
-            dayName,
-            "08:00",
-            day
-          );
-          const total0800 = assigned0800.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "St. Yakobus",
-            time: "08:00",
-            assignedLingkungan: assigned0800,
-            totalTatib: total0800,
-            needsMore: total0800 < 20,
-          });
+          if (!isDuplicate("St. Yakobus", "08:00")) {
+            const assigned0800 = getNextLingkunganForSlot(
+              "St. Yakobus",
+              dayName,
+              "08:00",
+              day
+            );
+            const total0800 = assigned0800.reduce((sum, l) => sum + l.tatib, 0);
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "St. Yakobus",
+              time: "08:00",
+              assignedLingkungan: assigned0800,
+              totalTatib: total0800,
+              needsMore: total0800 < 20,
+            });
+          }
 
-          const assigned1100 = getNextLingkunganForSlot(
-            "St. Yakobus",
-            dayName,
-            "11:00",
-            day
-          );
-          const total1100 = assigned1100.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "St. Yakobus",
-            time: "11:00",
-            assignedLingkungan: assigned1100,
-            totalTatib: total1100,
-            needsMore: total1100 < 20,
-          });
+          if (!isDuplicate("St. Yakobus", "11:00")) {
+            const assigned1100 = getNextLingkunganForSlot(
+              "St. Yakobus",
+              dayName,
+              "11:00",
+              day
+            );
+            const total1100 = assigned1100.reduce((sum, l) => sum + l.tatib, 0);
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "St. Yakobus",
+              time: "11:00",
+              assignedLingkungan: assigned1100,
+              totalTatib: total1100,
+              needsMore: total1100 < 20,
+            });
+          }
 
-          const assigned1700 = getNextLingkunganForSlot(
-            "St. Yakobus",
-            dayName,
-            "17:00",
-            day
-          );
-          const total1700 = assigned1700.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "St. Yakobus",
-            time: "17:00",
-            assignedLingkungan: assigned1700,
-            totalTatib: total1700,
-            needsMore: total1700 < 20,
-          });
+          if (!isDuplicate("St. Yakobus", "17:00")) {
+            const assigned1700 = getNextLingkunganForSlot(
+              "St. Yakobus",
+              dayName,
+              "17:00",
+              day
+            );
+            const total1700 = assigned1700.reduce((sum, l) => sum + l.tatib, 0);
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "St. Yakobus",
+              time: "17:00",
+              assignedLingkungan: assigned1700,
+              totalTatib: total1700,
+              needsMore: total1700 < 20,
+            });
+          }
         } else {
           // Saturday
-          const assignedSat = getNextLingkunganForSlot(
-            "St. Yakobus",
-            dayName,
-            "17:00",
-            day
-          );
-          const totalSat = assignedSat.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "St. Yakobus",
-            time: "17:00",
-            assignedLingkungan: assignedSat,
-            totalTatib: totalSat,
-            needsMore: totalSat < 20,
-          });
+          if (!isDuplicate("St. Yakobus", "17:00")) {
+            const assignedSat = getNextLingkunganForSlot(
+              "St. Yakobus",
+              dayName,
+              "17:00",
+              day
+            );
+            const totalSat = assignedSat.reduce((sum, l) => sum + l.tatib, 0);
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "St. Yakobus",
+              time: "17:00",
+              assignedLingkungan: assignedSat,
+              totalTatib: totalSat,
+              needsMore: totalSat < 20,
+            });
+          }
         }
 
         // Pegangsaan 2 assignments (Sunday only)
         if (dayOfWeek === 0) {
-          const assignedP0730 = getNextLingkunganForSlot(
-            "Pegangsaan 2",
-            dayName,
-            "07:30",
-            day
-          );
-          const totalP0730 = assignedP0730.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "Pegangsaan 2",
-            time: "07:30",
-            assignedLingkungan: assignedP0730,
-            totalTatib: totalP0730,
-            needsMore: totalP0730 < 20,
-          });
+          if (!isDuplicate("Pegangsaan 2", "07:30")) {
+            const assignedP0730 = getNextLingkunganForSlot(
+              "Pegangsaan 2",
+              dayName,
+              "07:30",
+              day
+            );
+            const totalP0730 = assignedP0730.reduce(
+              (sum, l) => sum + l.tatib,
+              0
+            );
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "Pegangsaan 2",
+              time: "07:30",
+              assignedLingkungan: assignedP0730,
+              totalTatib: totalP0730,
+              needsMore: totalP0730 < 20,
+            });
+          }
 
-          const assignedP1030 = getNextLingkunganForSlot(
-            "Pegangsaan 2",
-            dayName,
-            "10:30",
-            day
-          );
-          const totalP1030 = assignedP1030.reduce((sum, l) => sum + l.tatib, 0);
-          assignments.push({
-            date: dateStr,
-            day: dayName,
-            church: "Pegangsaan 2",
-            time: "10:30",
-            assignedLingkungan: assignedP1030,
-            totalTatib: totalP1030,
-            needsMore: totalP1030 < 20,
-          });
+          if (!isDuplicate("Pegangsaan 2", "10:30")) {
+            const assignedP1030 = getNextLingkunganForSlot(
+              "Pegangsaan 2",
+              dayName,
+              "10:30",
+              day
+            );
+            const totalP1030 = assignedP1030.reduce(
+              (sum, l) => sum + l.tatib,
+              0
+            );
+            assignments.push({
+              date: dateStr,
+              day: dayName,
+              church: "Pegangsaan 2",
+              time: "10:30",
+              assignedLingkungan: assignedP1030,
+              totalTatib: totalP1030,
+              needsMore: totalP1030 < 20,
+            });
+          }
         }
       }
     }
@@ -1329,9 +1256,100 @@ export default function KalendarPenugasanPage() {
       });
     };
 
+    console.log("📊 Before consolidation:", assignments.length, "assignments");
     consolidateWilayahOnSameDate();
+    console.log("📊 After consolidation:", assignments.length, "assignments");
+
+    // Check for duplicates after consolidation
+    const duplicatesAfterConsolidation = new Map<string, number[]>();
+    assignments.forEach((a, index) => {
+      const key = `${a.date}-${a.church}-${a.time}`;
+      if (!duplicatesAfterConsolidation.has(key)) {
+        duplicatesAfterConsolidation.set(key, []);
+      }
+      duplicatesAfterConsolidation.get(key)!.push(index);
+    });
+
+    duplicatesAfterConsolidation.forEach((indices, key) => {
+      if (indices.length > 1) {
+        console.error(
+          `❌ DUPLICATE KEY AFTER CONSOLIDATION: ${key} appears at indices:`,
+          indices
+        );
+        indices.forEach((i) => {
+          console.error(`   Index ${i}:`, assignments[i]);
+        });
+      }
+    });
 
     console.log("✅ Generated", assignments.length, "assignments");
+
+    // FAIRNESS DIAGNOSTIC: Check final distribution
+    console.log("\n🔍 FAIRNESS DIAGNOSTIC:");
+    const finalCounts = new Map<string, number>();
+    lingkunganData.forEach((ling) => finalCounts.set(ling.namaLingkungan, 0));
+
+    assignments.forEach((assignment) => {
+      assignment.assignedLingkungan.forEach((ling) => {
+        const current = finalCounts.get(ling.name) || 0;
+        finalCounts.set(ling.name, current + 1);
+      });
+    });
+
+    const distribution = Array.from(finalCounts.entries()).sort(
+      (a, b) => a[1] - b[1]
+    );
+
+    const zeros = distribution.filter(([_, count]) => count === 0);
+    const ones = distribution.filter(([_, count]) => count === 1);
+    const twos = distribution.filter(([_, count]) => count === 2);
+    const threes = distribution.filter(([_, count]) => count >= 3);
+
+    console.log(`   0x assignments: ${zeros.length} lingkungan`);
+    console.log(`   1x assignments: ${ones.length} lingkungan`);
+    console.log(`   2x assignments: ${twos.length} lingkungan`);
+    console.log(`   3x+ assignments: ${threes.length} lingkungan`);
+
+    if (zeros.length > 0) {
+      console.warn("   ⚠️ Lingkungan with 0 assignments:");
+      zeros.slice(0, 5).forEach(([name]) => {
+        const ling = lingkunganData.find((l) => l.namaLingkungan === name);
+        if (ling) {
+          const availSlots = [];
+          if (ling.availability["St. Yakobus"]?.Minggu)
+            availSlots.push(
+              ...ling.availability["St. Yakobus"].Minggu.map(
+                (t) => `SY Minggu ${t}`
+              )
+            );
+          if (ling.availability["St. Yakobus"]?.Sabtu)
+            availSlots.push(
+              ...ling.availability["St. Yakobus"].Sabtu.map(
+                (t) => `SY Sabtu ${t}`
+              )
+            );
+          if (ling.availability["Pegangsaan 2"]?.Minggu)
+            availSlots.push(
+              ...ling.availability["Pegangsaan 2"].Minggu.map(
+                (t) => `P2 Minggu ${t}`
+              )
+            );
+          console.log(
+            `      ${name}: Available for ${
+              availSlots.length
+            } slots - ${availSlots.join(", ")}`
+          );
+        }
+      });
+    }
+
+    if (threes.length > 0) {
+      console.warn("   ⚠️ Lingkungan with 3+ assignments:");
+      threes.slice(0, 5).forEach(([name, count]) => {
+        console.log(`      ${name}: ${count}x`);
+      });
+    }
+    console.log("");
 
     // Check for duplicates before saving
     const uniqueKeys = new Set();
@@ -1357,6 +1375,80 @@ export default function KalendarPenugasanPage() {
     saveAssignmentsToDatabase(assignments).catch((err) =>
       console.error("Error saving assignments in background:", err)
     );
+  };
+
+  const generateAllMonths = async () => {
+    const startYear = selectedYear;
+    const startMonth = selectedMonth;
+    const confirmed = window.confirm(
+      `Generate assignments for 12 consecutive months starting from ${new Date(
+        startYear,
+        startMonth
+      ).toLocaleDateString("id-ID", {
+        month: "long",
+        year: "numeric",
+      })}?\n\nThis will take about 2-3 minutes.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Generate 12 months starting from current selected month
+      for (let i = 0; i < 12; i++) {
+        const monthToGenerate = (startMonth + i) % 12;
+        const yearToGenerate = startYear + Math.floor((startMonth + i) / 12);
+
+        console.log(`\n${"=".repeat(60)}`);
+        console.log(
+          `📅 Generating ${i + 1}/12: ${new Date(
+            yearToGenerate,
+            monthToGenerate
+          ).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+        );
+        console.log(`${"=".repeat(60)}\n`);
+
+        // Set the month/year for generation
+        setSelectedYear(yearToGenerate);
+        setSelectedMonth(monthToGenerate);
+
+        // Wait for state to update
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Generate assignments for this month
+        await generateAssignments();
+
+        // Wait between months to ensure database operations complete
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      // Restore original month/year
+      setSelectedYear(startYear);
+      setSelectedMonth(startMonth);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Reload the current month to show it
+      await loadAssignmentsFromDatabase();
+
+      alert(
+        `✅ Successfully generated 12 months of assignments!\n\nStarting: ${new Date(
+          startYear,
+          startMonth
+        ).toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        })}\nEnding: ${new Date(
+          startYear + Math.floor((startMonth + 11) / 12),
+          (startMonth + 11) % 12
+        ).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+      );
+    } catch (error) {
+      console.error("❌ Error generating all months:", error);
+      alert("Failed to generate all months. Check console for details.");
+
+      // Restore original month/year on error
+      setSelectedYear(startYear);
+      setSelectedMonth(startMonth);
+    }
   };
 
   const groupByDate = () => {
@@ -1768,6 +1860,13 @@ export default function KalendarPenugasanPage() {
                     title="Generate jadwal baru dari awal (akan menghapus perubahan manual)"
                   >
                     🔄 Generate
+                  </button>
+                  <button
+                    onClick={generateAllMonths}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm sm:text-base"
+                    title="Generate 12 bulan berturut-turut mulai dari bulan yang dipilih"
+                  >
+                    🔄 Generate 12 Bulan
                   </button>
                   <button
                     onClick={async () => {

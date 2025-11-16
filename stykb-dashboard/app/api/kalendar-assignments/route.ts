@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       } else {
         console.log("✅ Delete successful");
         
-        // Wait a bit to ensure delete is committed
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait to ensure delete is fully committed before inserting
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
