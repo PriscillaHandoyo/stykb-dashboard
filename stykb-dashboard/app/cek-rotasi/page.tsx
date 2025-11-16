@@ -173,8 +173,8 @@ export default function CekRotasi() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                placeholder="Masukkan password"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors text-gray-900 placeholder-gray-500 text-sm sm:text-base"
+                placeholder="admin123"
                 autoFocus
               />
               {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
@@ -247,7 +247,7 @@ export default function CekRotasi() {
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900"
                   >
                     {years.map((year) => (
                       <option key={year} value={year}>
@@ -258,7 +258,7 @@ export default function CekRotasi() {
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900"
                   >
                     {months.map((month, index) => (
                       <option key={index} value={index}>
