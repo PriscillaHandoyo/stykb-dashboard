@@ -1786,116 +1786,114 @@ export default function KalendarPenugasanPage() {
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8">
             {/* Year and Month Selection */}
-            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="w-full sm:w-auto">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  Tahun
-                </label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base text-gray-900 bg-white min-w-[120px]"
-                >
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="w-full sm:w-auto">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  Bulan
-                </label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base text-gray-900 bg-white min-w-[150px]"
-                >
-                  {months.map((month, index) => (
-                    <option key={index} value={index}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="w-full sm:w-auto sm:ml-auto flex flex-col sm:flex-row gap-2">
-                <label className="hidden sm:block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  &nbsp;
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowMinTatibConfig(true)}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-full sm:w-auto">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    Tahun
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base text-gray-900 bg-white min-w-[120px]"
                   >
-                    Atur Min Tatib
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedYear(new Date().getFullYear());
-                      setSelectedMonth(new Date().getMonth());
-                    }}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                  >
-                    Bulan Ini
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Regenerate fresh assignments from scratch
-                      generateAssignments();
-
-                      alert(
-                        `Jadwal baru telah di-generate untuk ${new Date(
-                          selectedYear,
-                          selectedMonth
-                        ).toLocaleDateString("id-ID", {
-                          month: "long",
-                          year: "numeric",
-                        })}`
-                      );
-                    }}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm sm:text-base"
-                    title="Generate jadwal baru dari awal (akan menghapus perubahan manual)"
-                  >
-                    🔄 Generate
-                  </button>
-                  <button
-                    onClick={generateAllMonths}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm sm:text-base"
-                    title="Generate 12 bulan berturut-turut mulai dari bulan yang dipilih"
-                  >
-                    🔄 Generate 12 Bulan
-                  </button>
-                  <button
-                    onClick={async () => {
-                      // Save current assignments (including manual edits and swaps) to database
-                      await saveAssignmentsToDatabase(assignments);
-
-                      alert(
-                        `Jadwal telah tersimpan untuk ${new Date(
-                          selectedYear,
-                          selectedMonth
-                        ).toLocaleDateString("id-ID", {
-                          month: "long",
-                          year: "numeric",
-                        })}`
-                      );
-                    }}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
-                    title="Simpan jadwal saat ini (termasuk perubahan manual) ke database"
-                  >
-                    💾 Simpan
-                  </button>
-                  <button
-                    onClick={exportToPDF}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base"
-                    title="Download jadwal ke PDF"
-                  >
-                    📄 Download
-                  </button>
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                <div className="w-full sm:w-auto">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    Bulan
+                  </label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base text-gray-900 bg-white min-w-[150px]"
+                  >
+                    {months.map((month, index) => (
+                      <option key={index} value={index}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons - Stacked on Mobile, Row on Desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2">
+                <button
+                  onClick={() => setShowMinTatibConfig(true)}
+                  className="px-3 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                >
+                  ⚙️ Min Tatib
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedYear(new Date().getFullYear());
+                    setSelectedMonth(new Date().getMonth());
+                  }}
+                  className="px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                >
+                  📅 Bulan Ini
+                </button>
+                <button
+                  onClick={() => {
+                    // Regenerate fresh assignments from scratch
+                    generateAssignments();
+
+                    alert(
+                      `Jadwal baru telah di-generate untuk ${new Date(
+                        selectedYear,
+                        selectedMonth
+                      ).toLocaleDateString("id-ID", {
+                        month: "long",
+                        year: "numeric",
+                      })}`
+                    );
+                  }}
+                  className="px-3 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                  title="Generate jadwal baru dari awal"
+                >
+                  🔄 Generate
+                </button>
+                <button
+                  onClick={generateAllMonths}
+                  className="px-3 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                  title="Generate 12 bulan berturut-turut"
+                >
+                  🔄 12 Bulan
+                </button>
+                <button
+                  onClick={async () => {
+                    // Save current assignments (including manual edits and swaps) to database
+                    await saveAssignmentsToDatabase(assignments);
+
+                    alert(
+                      `Jadwal telah tersimpan untuk ${new Date(
+                        selectedYear,
+                        selectedMonth
+                      ).toLocaleDateString("id-ID", {
+                        month: "long",
+                        year: "numeric",
+                      })}`
+                    );
+                  }}
+                  className="px-3 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                  title="Simpan jadwal saat ini"
+                >
+                  💾 Simpan
+                </button>
+                <button
+                  onClick={exportToPDF}
+                  className="px-3 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                  title="Download jadwal ke PDF"
+                >
+                  📄 PDF
+                </button>
               </div>
             </div>
 
