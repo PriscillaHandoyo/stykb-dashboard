@@ -768,6 +768,9 @@ export default function KalendarPenugasanPage() {
     // Track assignments per day to avoid assigning same lingkungan multiple times on same date
     const dailyAssignments: { [dayNum: number]: Set<string> } = {};
 
+    // Track ALL assignments in this month to prevent duplicates across the entire month
+    const monthlyAssignedLingkungan = new Set<string>();
+
     // Helper function to get week number of the month
     const getWeekOfMonth = (dayNum: number): number => {
       return Math.ceil(dayNum / 7);
@@ -823,6 +826,9 @@ export default function KalendarPenugasanPage() {
       const availableLingkungan = lingkunganData.filter((ling) => {
         // Skip if already assigned today
         if (todayAssignments.has(ling.namaLingkungan)) return false;
+
+        // Skip if already assigned ANYWHERE in this month
+        if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false;
 
         // Check availability for this church/day/time
         const availability = ling.availability[normalizedChurch];
@@ -894,46 +900,52 @@ export default function KalendarPenugasanPage() {
       }
       dailyAssignments[currentDay].add(selectedLingkungan.namaLingkungan);
 
+      // Track monthly assignment (to prevent same lingkungan being assigned twice in one month)
+      monthlyAssignedLingkungan.add(selectedLingkungan.namaLingkungan);
+
       // If tatib < MIN_TATIB, try to add more lingkungan from the SAME wilayah
       if (tatib < MIN_TATIB) {
         const wilayah = getWilayah(selectedLingkungan.namaLingkungan);
 
-        // Find other lingkungan from same wilayah who are available and not assigned today
-        let sameWilayahLingkungan = availableLingkungan.filter((ling) => {
+        // Get ALL available lingkungan (not assigned today or this month)
+        let candidateLingkungan = availableLingkungan.filter((ling) => {
           if (ling.namaLingkungan === selectedLingkungan.namaLingkungan)
             return false; // Skip the one already selected
           if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
             return false; // Skip if already assigned today
-          return getWilayah(ling.namaLingkungan) === wilayah;
+          if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false; // Skip if already assigned this month
+          return true;
         });
 
-        // If no same-wilayah lingkungan available, use ANY available lingkungan
-        if (sameWilayahLingkungan.length === 0) {
-          console.log(
-            `   ⚠️ No same-wilayah lingkungan found for ${selectedLingkungan.namaLingkungan}, using any available`
-          );
-          sameWilayahLingkungan = availableLingkungan.filter((ling) => {
-            if (ling.namaLingkungan === selectedLingkungan.namaLingkungan)
-              return false;
-            if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
-              return false;
-            return true;
-          });
-        }
+        // Sort by: 1) Same wilayah first, 2) Usage count (fairness), 3) Name
+        candidateLingkungan.sort((a, b) => {
+          const aIsWilayah = getWilayah(a.namaLingkungan) === wilayah;
+          const bIsWilayah = getWilayah(b.namaLingkungan) === wilayah;
 
-        // Sort by usage count (fairness)
-        sameWilayahLingkungan.sort((a, b) => {
+          // Prioritize same wilayah
+          if (aIsWilayah && !bIsWilayah) return -1;
+          if (!aIsWilayah && bIsWilayah) return 1;
+
+          // Within same priority (both same wilayah or both different), sort by count
           const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
           const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
           if (countA !== countB) return countA - countB;
+
           return a.namaLingkungan.localeCompare(b.namaLingkungan);
         });
 
-        // Add lingkungan from same wilayah (or any available) until we reach MIN_TATIB
-        for (const additionalLing of sameWilayahLingkungan) {
+        if (candidateLingkungan.length === 0) {
+          console.log(
+            `   ⚠️ No additional lingkungan available for ${selectedLingkungan.namaLingkungan}`
+          );
+        }
+
+        // Add lingkungan until we reach MIN_TATIB (prioritizing same wilayah)
+        for (const additionalLing of candidateLingkungan) {
           if (totalTatib >= MIN_TATIB) break;
 
           const additionalTatib = parseInt(additionalLing.jumlahTatib) || 0;
+          const additionalWilayah = getWilayah(additionalLing.namaLingkungan);
 
           assigned.push({
             name: additionalLing.namaLingkungan,
@@ -952,8 +964,15 @@ export default function KalendarPenugasanPage() {
           // Track daily assignment
           dailyAssignments[currentDay].add(additionalLing.namaLingkungan);
 
+          // Track monthly assignment
+          monthlyAssignedLingkungan.add(additionalLing.namaLingkungan);
+
+          const wilayahLabel =
+            additionalWilayah === wilayah
+              ? `same wilayah (${wilayah})`
+              : `different wilayah (${additionalWilayah})`;
           console.log(
-            `   ➕ Added ${additionalLing.namaLingkungan} (${additionalTatib} tatib) from ${wilayah} - Total: ${totalTatib}`
+            `   ➕ Added ${additionalLing.namaLingkungan} (${additionalTatib} tatib) - ${wilayahLabel} - Total: ${totalTatib}`
           );
         }
       }
