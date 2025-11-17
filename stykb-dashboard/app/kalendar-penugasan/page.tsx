@@ -105,6 +105,7 @@ export default function KalendarPenugasanPage() {
     assignmentIndex: number;
     action: "add" | "edit";
   } | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Save assignments to Supabase
   const saveAssignmentsToDatabase = async (assignments: Assignment[]) => {
@@ -1576,6 +1577,33 @@ export default function KalendarPenugasanPage() {
     doc.save(`Jadwal-Tatib-${monthName.replace(/\s/g, "-")}.pdf`);
   };
 
+  // Handle save button click - show dialog
+  const handleSaveClick = () => {
+    setShowSaveDialog(true);
+  };
+
+  // Handle save option selection
+  const handleSaveOption = async (option: "database" | "excel" | "pdf") => {
+    setShowSaveDialog(false);
+
+    if (option === "database") {
+      await saveAssignmentsToDatabase(assignments);
+      alert(
+        `Jadwal telah tersimpan ke database untuk ${new Date(
+          selectedYear,
+          selectedMonth
+        ).toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        })}`
+      );
+    } else if (option === "excel") {
+      exportToExcel();
+    } else if (option === "pdf") {
+      exportToPDF();
+    }
+  };
+
   // Export to Excel function
   const exportToExcel = () => {
     const monthName = new Date(selectedYear, selectedMonth).toLocaleDateString(
@@ -1926,28 +1954,15 @@ export default function KalendarPenugasanPage() {
                   🔄 12 Bulan
                 </button>
                 <button
-                  onClick={async () => {
-                    // Save current assignments (including manual edits and swaps) to database
-                    await saveAssignmentsToDatabase(assignments);
-
-                    alert(
-                      `Jadwal telah tersimpan untuk ${new Date(
-                        selectedYear,
-                        selectedMonth
-                      ).toLocaleDateString("id-ID", {
-                        month: "long",
-                        year: "numeric",
-                      })}`
-                    );
-                  }}
+                  onClick={handleSaveClick}
                   className="px-3 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
-                  title="Simpan jadwal saat ini"
+                  title="Simpan jadwal"
                 >
                   💾 Simpan
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="px-3 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                  className="px-3 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap hidden"
                   title="Download jadwal ke PDF"
                 >
                   📄 PDF
@@ -2810,6 +2825,113 @@ export default function KalendarPenugasanPage() {
                 Simpan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Pilih Format Penyimpanan
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Bagaimana Anda ingin menyimpan jadwal ini?
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => handleSaveOption("database")}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-2xl">💾</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Simpan ke Database</div>
+                    <div className="text-sm text-green-100">
+                      Jadwal akan tersimpan di sistem
+                    </div>
+                  </div>
+                </span>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+
+              <button
+                onClick={() => handleSaveOption("excel")}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-2xl">📊</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Download Excel</div>
+                    <div className="text-sm text-blue-100">
+                      Format .xlsx untuk edit lebih lanjut
+                    </div>
+                  </div>
+                </span>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+
+              <button
+                onClick={() => handleSaveOption("pdf")}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-2xl">📄</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Download PDF</div>
+                    <div className="text-sm text-red-100">
+                      Dokumen siap cetak
+                    </div>
+                  </div>
+                </span>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowSaveDialog(false)}
+              className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Batal
+            </button>
           </div>
         </div>
       )}
