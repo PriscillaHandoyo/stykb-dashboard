@@ -661,8 +661,8 @@ export default function KalendarPenugasanPage() {
         usageCounts.set(ling.namaLingkungan, 0);
       });
 
-      // Scan through last 6 months from database to count assignments
-      for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
+      // Scan through last 12 months from database to count assignments
+      for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
         let checkYear = selectedYear;
         let checkMonth = selectedMonth - monthOffset;
 
@@ -706,7 +706,7 @@ export default function KalendarPenugasanPage() {
 
     const usageCounts = await getGlobalUsageCounts();
 
-    // FIXED: Track assignments using GLOBAL 6-month count + current month additions
+    // FIXED: Track assignments using GLOBAL 12-month count + current month additions
     // This ensures true fairness across months: lingkungan with fewer assignments overall get priority
     const currentMonthUsageCounts = new Map<string, number>();
 
@@ -820,8 +820,9 @@ export default function KalendarPenugasanPage() {
 
       // SIMPLE FAIRNESS ALGORITHM:
       // 1. Filter lingkungan who are available for this slot AND not assigned today
-      // 2. Sort by total assignment count (lowest first)
-      // 3. Pick the first one
+      // 2. Exclude lingkungan with 7+ assignments (hard cap)
+      // 3. Sort by total assignment count (prioritize <5, then 5-6, avoid 7+)
+      // 4. Pick the first one
 
       const availableLingkungan = lingkunganData.filter((ling) => {
         // Skip if already assigned today
@@ -829,6 +830,10 @@ export default function KalendarPenugasanPage() {
 
         // Skip if already assigned ANYWHERE in this month
         if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false;
+
+        // HARD CAP: Skip if already has 7+ assignments in the year
+        const yearCount = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
+        if (yearCount >= 7) return false;
 
         // Check availability for this church/day/time
         const availability = ling.availability[normalizedChurch];
@@ -848,8 +853,20 @@ export default function KalendarPenugasanPage() {
         return [];
       }
 
-      // Sort by assignment count (FAIRNESS FIRST AND ONLY)
-      availableLingkungan.sort((a, b) => {
+      // SOFT FLOOR: If there are lingkungan with <5 assignments, only use those
+      // This ensures we try to get everyone to 5 before allowing 6+
+      const lingkunganNeedingMore = availableLingkungan.filter((ling) => {
+        const count = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
+        return count < 5;
+      });
+
+      const finalCandidates =
+        lingkunganNeedingMore.length > 0
+          ? lingkunganNeedingMore
+          : availableLingkungan; // Fallback if everyone has 5+
+
+      // Sort by assignment count (lowest first)
+      finalCandidates.sort((a, b) => {
         const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
         const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
 
@@ -859,14 +876,14 @@ export default function KalendarPenugasanPage() {
         return a.namaLingkungan.localeCompare(b.namaLingkungan);
       });
 
-      const selectedLingkungan = availableLingkungan[0];
+      const selectedLingkungan = finalCandidates[0];
       const tatib = parseInt(selectedLingkungan.jumlahTatib) || 0;
       const currentCount =
         currentMonthUsageCounts.get(selectedLingkungan.namaLingkungan) || 0;
 
       // Debug: Show top 3 candidates to understand selection
-      if (availableLingkungan.length >= 3) {
-        const top3 = availableLingkungan
+      if (finalCandidates.length >= 3) {
+        const top3 = finalCandidates
           .slice(0, 3)
           .map((l) => {
             const count = currentMonthUsageCounts.get(l.namaLingkungan) || 0;
@@ -907,17 +924,23 @@ export default function KalendarPenugasanPage() {
       if (tatib < MIN_TATIB) {
         const wilayah = getWilayah(selectedLingkungan.namaLingkungan);
 
-        // Get ALL available lingkungan (not assigned today or this month)
+        // Get ALL available lingkungan (not assigned today or this month, and <7 assignments)
         let candidateLingkungan = availableLingkungan.filter((ling) => {
           if (ling.namaLingkungan === selectedLingkungan.namaLingkungan)
             return false; // Skip the one already selected
           if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
             return false; // Skip if already assigned today
           if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false; // Skip if already assigned this month
+
+          // HARD CAP: Skip if already has 7+ assignments
+          const yearCount =
+            currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
+          if (yearCount >= 7) return false;
+
           return true;
         });
 
-        // Sort by: 1) Same wilayah first, 2) Usage count (fairness), 3) Name
+        // Sort by: 1) Same wilayah first, 2) Prioritize <5 assignments, 3) Usage count, 4) Name
         candidateLingkungan.sort((a, b) => {
           const aIsWilayah = getWilayah(a.namaLingkungan) === wilayah;
           const bIsWilayah = getWilayah(b.namaLingkungan) === wilayah;
@@ -926,22 +949,38 @@ export default function KalendarPenugasanPage() {
           if (aIsWilayah && !bIsWilayah) return -1;
           if (!aIsWilayah && bIsWilayah) return 1;
 
-          // Within same priority (both same wilayah or both different), sort by count
+          // Within same wilayah priority, prioritize lingkungan with <5 assignments
           const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
           const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
+
+          const aNeedMore = countA < 5;
+          const bNeedMore = countB < 5;
+          if (aNeedMore && !bNeedMore) return -1;
+          if (!aNeedMore && bNeedMore) return 1;
+
+          // Within same priority group, sort by count
           if (countA !== countB) return countA - countB;
 
           return a.namaLingkungan.localeCompare(b.namaLingkungan);
         });
 
-        if (candidateLingkungan.length === 0) {
+        // SOFT FLOOR for multi-lingkungan: Prefer candidates with <5 if available
+        const multiNeedingMore = candidateLingkungan.filter((ling) => {
+          const count = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
+          return count < 5;
+        });
+
+        const finalMultiCandidates =
+          multiNeedingMore.length > 0 ? multiNeedingMore : candidateLingkungan;
+
+        if (finalMultiCandidates.length === 0) {
           console.log(
             `   ⚠️ No additional lingkungan available for ${selectedLingkungan.namaLingkungan}`
           );
         }
 
-        // Add lingkungan until we reach MIN_TATIB (prioritizing same wilayah)
-        for (const additionalLing of candidateLingkungan) {
+        // Add lingkungan until we reach MIN_TATIB (using filtered candidates)
+        for (const additionalLing of finalMultiCandidates) {
           if (totalTatib >= MIN_TATIB) break;
 
           const additionalTatib = parseInt(additionalLing.jumlahTatib) || 0;

@@ -55,8 +55,8 @@ export default function CekRotasi() {
         };
       });
 
-      // Count assignments from last 6 months
-      for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
+      // Count assignments from last 12 months
+      for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
         let checkYear = selectedYear;
         let checkMonth = selectedMonth - monthOffset;
 
@@ -241,7 +241,7 @@ export default function CekRotasi() {
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Periode Perhitungan (6 bulan mundur dari)
+                  Periode Perhitungan (12 bulan mundur dari)
                 </label>
                 <div className="flex gap-3">
                   <select
