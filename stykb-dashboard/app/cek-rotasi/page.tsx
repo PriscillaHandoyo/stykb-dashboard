@@ -212,7 +212,7 @@ export default function CekRotasi() {
                 Cek Rotasi Lingkungan
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Monitoring penugasan lingkungan dalam 6 bulan terakhir
+                Monitoring penugasan lingkungan dalam 12 bulan terakhir
               </p>
             </div>
             <div className="flex items-center gap-3">
