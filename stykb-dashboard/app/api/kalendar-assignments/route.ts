@@ -80,21 +80,37 @@ export async function POST(request: NextRequest) {
         
         console.log("✅ Delete successful, waiting for commit...");
         
-        // Wait longer to ensure delete is fully committed
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait longer to ensure delete is fully committed (increased for bulk operations)
+        await new Promise(resolve => setTimeout(resolve, 2500));
         
-        // Verify deletion completed
-        const { data: verifyData } = await supabase
-          .from("kalendar_assignments")
-          .select("id")
-          .eq("tahun", tahun)
-          .eq("bulan", bulan);
-        
-        if (verifyData && verifyData.length > 0) {
-          console.error(`⚠️  Warning: ${verifyData.length} records still exist after delete!`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-          console.log("✅ Deletion verified, proceeding with insert");
+        // Verify deletion completed with retry
+        let retries = 3;
+        while (retries > 0) {
+          const { data: verifyData } = await supabase
+            .from("kalendar_assignments")
+            .select("id")
+            .eq("tahun", tahun)
+            .eq("bulan", bulan);
+          
+          if (!verifyData || verifyData.length === 0) {
+            console.log("✅ Deletion verified, proceeding with insert");
+            break;
+          }
+          
+          console.warn(`⚠️  ${verifyData.length} records still exist, waiting... (${retries} retries left)`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          retries--;
+          
+          if (retries === 0) {
+            console.error("❌ Delete verification failed after retries, forcing delete again");
+            // Force delete one more time
+            await supabase
+              .from("kalendar_assignments")
+              .delete()
+              .eq("tahun", tahun)
+              .eq("bulan", bulan);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         }
       }
     }

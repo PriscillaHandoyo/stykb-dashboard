@@ -729,6 +729,19 @@ export default function KalendarPenugasanPage() {
     // Use all available lingkungan for regular mass assignments
     const availableLingkungan = lingkunganData;
 
+    // Fairness targets across a year
+    const TOTAL_MISA_PER_YEAR = 288; // 6 misa x 4 weeks x 12 months (given)
+    const TOTAL_LINGKUNGAN = availableLingkungan.length;
+    const targetPerLingkungan = Math.floor(
+      TOTAL_MISA_PER_YEAR / Math.max(1, TOTAL_LINGKUNGAN)
+    );
+    const maxPerLingkungan = targetPerLingkungan + 2;
+    const minPerLingkungan = targetPerLingkungan; // minimal expected over a year
+
+    console.log(
+      `🎯 Fairness target per lingkungan: min ${minPerLingkungan} / max ${maxPerLingkungan} (total lingkungan: ${TOTAL_LINGKUNGAN})`
+    );
+
     // Function to rebuild the pool with GLOBAL usage counts + current month - called after each assignment
     // Priority order based on TOTAL assignments (6 months + current month):
     // 1. Lingkungan with lowest total count (0x, then 1x, then 2x, etc.)
@@ -801,6 +814,12 @@ export default function KalendarPenugasanPage() {
       time: string,
       currentDay: number
     ): AssignedLingkungan[] => {
+      // Identify the current week number for weekly no-repeat enforcement
+      const weekNum = getWeekOfMonth(currentDay);
+      if (!weeklyAssignments[weekNum]) {
+        weeklyAssignments[weekNum] = new Set<string>();
+      }
+      const currentWeekAssigned = weeklyAssignments[weekNum];
       // Get MIN_TATIB from configuration
       const normalizedChurch = church.includes("Yakobus")
         ? "St. Yakobus"
@@ -832,9 +851,12 @@ export default function KalendarPenugasanPage() {
         // Skip if already assigned ANYWHERE in this month
         if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false;
 
-        // HARD CAP: Skip if already has 7+ assignments in the year
+        // Skip if already assigned in this WEEK (Saturday/Sunday in same week)
+        if (currentWeekAssigned.has(ling.namaLingkungan)) return false;
+
+        // HARD CAP: Skip if already exceeded annual max target
         const yearCount = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
-        if (yearCount >= 7) return false;
+        if (yearCount >= maxPerLingkungan) return false;
 
         // Check availability for this church/day/time
         const availability = ling.availability[normalizedChurch];
@@ -854,11 +876,10 @@ export default function KalendarPenugasanPage() {
         return [];
       }
 
-      // SOFT FLOOR: If there are lingkungan with <5 assignments, only use those
-      // This ensures we try to get everyone to 5 before allowing 6+
+      // SOFT FLOOR toward fairness: prioritize lingkungan below annual minimum target
       const lingkunganNeedingMore = availableLingkungan.filter((ling) => {
         const count = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
-        return count < 5;
+        return count < minPerLingkungan;
       });
 
       const finalCandidates =
@@ -866,7 +887,7 @@ export default function KalendarPenugasanPage() {
           ? lingkunganNeedingMore
           : availableLingkungan; // Fallback if everyone has 5+
 
-      // Sort by assignment count (lowest first)
+      // Sort by assignment count (lowest first) to push toward fairness target
       finalCandidates.sort((a, b) => {
         const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
         const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
@@ -921,6 +942,9 @@ export default function KalendarPenugasanPage() {
       // Track monthly assignment (to prevent same lingkungan being assigned twice in one month)
       monthlyAssignedLingkungan.add(selectedLingkungan.namaLingkungan);
 
+      // Track weekly assignment (to prevent Saturday/Sunday reuse within the same week)
+      currentWeekAssigned.add(selectedLingkungan.namaLingkungan);
+
       // If tatib < MIN_TATIB, try to add more lingkungan from the SAME wilayah
       if (tatib < MIN_TATIB) {
         const wilayah = getWilayah(selectedLingkungan.namaLingkungan);
@@ -932,16 +956,17 @@ export default function KalendarPenugasanPage() {
           if (dailyAssignments[currentDay]?.has(ling.namaLingkungan))
             return false; // Skip if already assigned today
           if (monthlyAssignedLingkungan.has(ling.namaLingkungan)) return false; // Skip if already assigned this month
+          if (currentWeekAssigned.has(ling.namaLingkungan)) return false; // Skip if already assigned in this week
 
-          // HARD CAP: Skip if already has 7+ assignments
+          // HARD CAP: Skip if already exceeded annual max target
           const yearCount =
             currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
-          if (yearCount >= 7) return false;
+          if (yearCount >= maxPerLingkungan) return false;
 
           return true;
         });
 
-        // Sort by: 1) Same wilayah first, 2) Prioritize <5 assignments, 3) Usage count, 4) Name
+        // Sort by: 1) Same wilayah first, 2) Prioritize below annual min target, 3) Usage count, 4) Name
         candidateLingkungan.sort((a, b) => {
           const aIsWilayah = getWilayah(a.namaLingkungan) === wilayah;
           const bIsWilayah = getWilayah(b.namaLingkungan) === wilayah;
@@ -950,12 +975,12 @@ export default function KalendarPenugasanPage() {
           if (aIsWilayah && !bIsWilayah) return -1;
           if (!aIsWilayah && bIsWilayah) return 1;
 
-          // Within same wilayah priority, prioritize lingkungan with <5 assignments
+          // Within same wilayah priority, prioritize lingkungan under annual min target
           const countA = currentMonthUsageCounts.get(a.namaLingkungan) || 0;
           const countB = currentMonthUsageCounts.get(b.namaLingkungan) || 0;
 
-          const aNeedMore = countA < 5;
-          const bNeedMore = countB < 5;
+          const aNeedMore = countA < minPerLingkungan;
+          const bNeedMore = countB < minPerLingkungan;
           if (aNeedMore && !bNeedMore) return -1;
           if (!aNeedMore && bNeedMore) return 1;
 
@@ -965,10 +990,10 @@ export default function KalendarPenugasanPage() {
           return a.namaLingkungan.localeCompare(b.namaLingkungan);
         });
 
-        // SOFT FLOOR for multi-lingkungan: Prefer candidates with <5 if available
+        // SOFT FLOOR for multi-lingkungan: Prefer candidates under annual min target if available
         const multiNeedingMore = candidateLingkungan.filter((ling) => {
           const count = currentMonthUsageCounts.get(ling.namaLingkungan) || 0;
-          return count < 5;
+          return count < minPerLingkungan;
         });
 
         const finalMultiCandidates =
@@ -1006,6 +1031,9 @@ export default function KalendarPenugasanPage() {
 
           // Track monthly assignment
           monthlyAssignedLingkungan.add(additionalLing.namaLingkungan);
+
+          // Track weekly assignment
+          currentWeekAssigned.add(additionalLing.namaLingkungan);
 
           const wilayahLabel =
             additionalWilayah === wilayah
@@ -2264,11 +2292,11 @@ export default function KalendarPenugasanPage() {
                                                         idx
                                                       )
                                                     }
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-100 rounded touch-manipulation"
                                                     title="Hapus lingkungan ini"
                                                   >
                                                     <svg
-                                                      className="w-4 h-4 text-red-600"
+                                                      className="w-5 h-5 sm:w-4 sm:h-4 text-red-600"
                                                       fill="none"
                                                       stroke="currentColor"
                                                       viewBox="0 0 24 24"
@@ -2375,7 +2403,7 @@ export default function KalendarPenugasanPage() {
                                                         }
                                                       }
                                                     }}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity px-3 py-2 text-xs sm:text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 touch-manipulation"
                                                     title="Tukar dengan lingkungan lain"
                                                   >
                                                     <option value="">
@@ -2592,7 +2620,7 @@ export default function KalendarPenugasanPage() {
                                                     e.target.value = "";
                                                   }
                                                 }}
-                                                className="w-full text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                className="w-full text-sm sm:text-xs px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
                                               >
                                                 <option value="">
                                                   + Tambah Lingkungan
